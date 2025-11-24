@@ -13,9 +13,11 @@
         <h1 class="display-1" style="color: #003f72; font-weight: bold;">Lindström AI Pilot Hub</h1>
         <hr style="width: 75%; border-top: 2px solid #003f72; border-radius: 5px;">
         <p>Your gateway to AI-powered solutions for enhanced efficiency and innovation. | Alpha Version</p>
-        <a href="#" class="text-decoration-none">
-            <i class="fas fa-user-circle me-2"></i>{{ user.name }} - About Me
-        </a>
+        <div>
+            <a href="#" id="open-image" class="text-decoration-none">
+                <i class="fas fa-user-circle me-2"></i>{{ user.name }} - About Me
+            </a>
+        </div>
     </div>
 
     <!-- Tool Grid Section -->
@@ -36,7 +38,7 @@
         <!-- Right Column -->
         <div class="col-md-4">
             <ul class="list-unstyled">
-                <li class="mb-3"><a href="https://yan-2820797191394638.aws.databricksapps.com/" class="text-decoration-none fs-5"><i class="fas fa-wand-magic-sparkles fa-fw me-3"></i><span>Tell your wishes for AI agents</span></a></li>
+                <li class="mb-3"><a href="/chat?agent=wish" class="text-decoration-none fs-5"><i class="fas fa-wand-magic-sparkles fa-fw me-3"></i><span>Tell your wishes for AI agents</span></a></li>
                 <li class="mb-3"><a href="/redoc" class="hidden text-decoration-none fs-5"><i class="fas fa-book fa-fw me-3"></i><span>Redoc</span></a></li>
                 <li class="mb-3"><a href="/docs" class="hidden text-decoration-none fs-5"><i class="fas fa-code fa-fw me-3"></i><span>OpenAPI</span></a></li>
                 <li class="mb-3"><a href="#" class="hidden text-decoration-none fs-5"><i class="fas fa-microscope fa-fw me-3"></i><span>Smart Log Analyzer</span></a></li>
@@ -46,6 +48,14 @@
         </div>
     </div>
 
+</div>
+
+<!-- Large image modal (80% viewport) -->
+<div id="image-modal" class="image-modal-overlay hidden" aria-hidden="true">
+    <div class="image-modal-content">
+        <button id="image-modal-close" class="btn btn-sm btn-light image-modal-close" aria-label="Close">&times;</button>
+        <img src="/static/aboutme.jpg" width="100%" alt="Large" />
+    </div>
 </div>
 
 <div style="position: fixed; bottom: 10px; right: 15px; z-index: 10; color: #eee; font-size: 0.8em;">
@@ -69,5 +79,49 @@
             }, 10000); // 10000 milliseconds = 10 seconds
          }
     });
+</script>
+<style>
+/* Image modal styles */
+.image-modal-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);z-index:1050}
+.image-modal-overlay.hidden{display:none}
+.image-modal-content{position:relative;width:80vw;height:80vh;background:transparent;display:flex;align-items:center;justify-content:center;border-radius:6px}
+.image-modal-content img{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;box-shadow:0 6px 30px rgba(0,0,0,0.6)}
+.image-modal-close{position:absolute;top:8px;right:8px;opacity:0.95}
+</style>
+
+<script>
+// Image modal open/close wiring
+document.addEventListener('DOMContentLoaded', function () {
+    const open = document.getElementById('open-image');
+    const modal = document.getElementById('image-modal');
+    const closeBtn = document.getElementById('image-modal-close');
+
+    if (open && modal) {
+        open.addEventListener('click', function (e) {
+            e.preventDefault();
+            modal.classList.remove('hidden');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        });
+
+        const closeModal = function () {
+            modal.classList.add('hidden');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        };
+
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+
+        // Close when clicking the overlay (but not the image itself)
+        modal.addEventListener('click', function (ev) {
+            if (ev.target === modal) closeModal();
+        });
+
+        // Close on ESC
+        document.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+        });
+    }
+});
 </script>
 {% endblock %}

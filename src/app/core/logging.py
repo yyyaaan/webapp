@@ -36,6 +36,11 @@ LOG_CONFIG = {
             "level": "INFO",
             "propagate": True,
         },
+        "chat": {
+            "handlers": ["default", "file"],
+            "level": "INFO",
+            "propagate": True,
+        },
         "uvicorn.error": {
             "level": "INFO",
         },

@@ -1,7 +1,6 @@
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from fastapi import FastAPI, openapi
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, openapi, staticfiles
 from logging.config import dictConfig
 from os import makedirs
 from starlette.middleware.sessions import SessionMiddleware
@@ -11,8 +10,9 @@ from app.core.logging import LOG_CONFIG
 from app.web import route as web_main
 from app.web import route_admin as web_admin
 from app.auth import router as router_auth
-from app.features.system import router as router_system
+from app.features.chat import router as router_chat
 from app.features.energy import router as router_energy
+from app.features.system import router as router_system
 
 dictConfig(LOG_CONFIG)
 
@@ -23,13 +23,13 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Yan", version="3.0.0", lifespan=lifespan)
+app = FastAPI(title="AI Pilot", version="0.0.1", lifespan=lifespan)
 app.add_middleware(SessionMiddleware, secret_key=settings.SESSION_SECRET_KEY)
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/static", staticfiles.StaticFiles(directory="app/static"), name="static")
 
 app.include_router(web_main.router)
 app.include_router(web_admin.router)
-
+app.include_router(router_chat.router, tags=["API Chat"])
 app.include_router(router_auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(router_system.router, prefix="/api/v3/system", tags=["System"])
 app.include_router(router_energy.router, prefix="/api/v3", tags=["API Energy"])

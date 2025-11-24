@@ -7,3 +7,4 @@ itsdangerous
 httpx
 motor
 databricks-sdk
+python-multipart

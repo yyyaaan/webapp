@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Request, Depends
 from fastapi.templating import Jinja2Templates
 from httpx import AsyncClient
-from starlette.responses import HTMLResponse, RedirectResponse
+from starlette.responses import HTMLResponse, RedirectResponse, StreamingResponse
+import asyncio
 
 from app.auth.security import get_current_user, require_user
 from app.core.db import api_key_collection
@@ -48,3 +49,13 @@ async def read_dashboard(request: Request, user: dict = Depends(require_user)):
             "settings": settings.get_redacted_dict(),
         }
     )
+
+
+@router.get("/chat", response_class=HTMLResponse, tags=["Web"])
+async def read_chat(request: Request, user: dict | None = Depends(get_current_user), agent: str = "Default"):
+    """Render the chat UI page."""
+    return templates.TemplateResponse(
+        "chat.html",
+        {"request": request, "user": user, "agent": agent},
+    )
+
