@@ -1,0 +1,40 @@
+<div id="api-key-manager" hx-swap-oob="true">
+    {% if api_key_data %}
+        <p>Your current API Key is 
+            {% if api_key_data.is_active %}
+                <span class="badge badge-success">Active</span>
+            {% else %}
+                <span class="badge badge-danger">Disabled</span>
+            {% endif %}
+        </p>
+        <p class="text-muted small">Created on: {{ api_key_data.created_at.strftime('%Y-%m-%d %H:%M') }} UTC</p>
+        
+        <div class="d-flex gap-2">
+            <button class="btn btn-warning" 
+                    hx-post="/upsert-api-key"
+                    hx-target="#api-key-result-container"
+                    hx-swap="innerHTML"
+                    hx-confirm="Are you sure you want to re-generate your key? The old one will be permanently revoked.">
+                Re-generate Key
+            </button>
+
+            <button class="btn btn-secondary"
+                    hx-post="/toggle-api-key-status"
+                    hx-target="#api-key-manager"
+                    hx-swap="outerHTML">
+                {% if api_key_data.is_active %} Disable {% else %} Enable {% endif %} Key
+            </button>
+        </div>
+
+    {% else %}
+        <p>You do not have an API key yet.</p>
+        <button class="btn btn-primary" 
+                hx-post="/upsert-api-key"
+                hx-target="#api-key-result-container"
+                hx-swap="innerHTML">
+            Generate Key
+        </button>
+    {% endif %}
+
+    <div id="api-key-result-container" class="mt-3"></div>
+</div>

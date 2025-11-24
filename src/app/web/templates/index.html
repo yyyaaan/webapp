@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+
+    <div id="error-alert" class="alert alert-danger" role="alert" style="display: none;">
+    </div>
+
+    <!-- User Profile Link (Top Right) -->
+    <div class="d-flex flex-column align-items-end mx-5 pe-5">
+        <h1 class="display-1" style="color: #003f72; font-weight: bold;">Lindström AI Pilot Hub</h1>
+        <hr style="width: 75%; border-top: 2px solid #003f72; border-radius: 5px;">
+        <p>Your gateway to AI-powered solutions for enhanced efficiency and innovation. | Alpha Version</p>
+        <a href="#" class="text-decoration-none">
+            <i class="fas fa-user-circle me-2"></i>{{ user.name }} - About Me
+        </a>
+    </div>
+
+    <!-- Tool Grid Section -->
+    <div id="index-tool-grid" class="row mt-5 p-5">
+        <div class="col-md-4">
+        </div>
+
+        <!-- Left Column -->
+        <div class="col-md-4">
+            <ul class="list-unstyled">
+                <li class="mb-3"><a href="#" class="hidden text-decoration-none fs-5"><i class="fas fa-graduation-cap fa-fw me-3"></i><span>tvSOBI - Thesis</span></a></li>
+                <li class="mb-3"><a href="/api/v3/spot-prices/plot" class="hidden text-decoration-none fs-5"><i class="fas fa-image fa-fw me-3"></i><span>Spot Prices</span></a></li>
+                <li class="mb-3"><a href="#" class="hidden text-decoration-none fs-5"><i class="fas fa-project-diagram fa-fw me-3"></i><span>Chat Flow Design</span></a></li>
+                <li class="mb-3"><a href="#" class="hidden text-decoration-none fs-5"><i class="fas fa-toolbox fa-fw me-3"></i><span>Toolbox Catalog</span></a></li>
+            </ul>
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-md-4">
+            <ul class="list-unstyled">
+                <li class="mb-3"><a href="https://yan-2820797191394638.aws.databricksapps.com/" class="text-decoration-none fs-5"><i class="fas fa-wand-magic-sparkles fa-fw me-3"></i><span>Tell your wishes for AI agents</span></a></li>
+                <li class="mb-3"><a href="/redoc" class="hidden text-decoration-none fs-5"><i class="fas fa-book fa-fw me-3"></i><span>Redoc</span></a></li>
+                <li class="mb-3"><a href="/docs" class="hidden text-decoration-none fs-5"><i class="fas fa-code fa-fw me-3"></i><span>OpenAPI</span></a></li>
+                <li class="mb-3"><a href="#" class="hidden text-decoration-none fs-5"><i class="fas fa-microscope fa-fw me-3"></i><span>Smart Log Analyzer</span></a></li>
+                <li class="mb-3"><a href="#" class="hidden text-decoration-none fs-5"><i class="fas fa-robot fa-fw me-3"></i><span>LLM Admin</span></a></li>
+                <li class="mb-3"><a href="#" class="hidden text-decoration-none fs-5"><i class="fas fa-comments fa-fw me-3"></i><span>Chat with Document</span></a></li>
+            </ul>
+        </div>
+    </div>
+
+</div>
+
+<div style="position: fixed; bottom: 10px; right: 15px; z-index: 10; color: #eee; font-size: 0.8em;">
+    {{ server_ip }}
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const params = new URLSearchParams(window.location.search);
+        const error = params.get('error');
+        const errorMessage = params.get('message');
+
+        if (error) {
+            const alertDiv = document.getElementById('error-alert');
+            alertDiv.innerHTML = errorMessage ? errorMessage : `An unexpected error occurred: ${error}`;
+            alertDiv.style.display = 'block';
+ 
+            setTimeout(function() {
+                alertDiv.style.display = 'none';
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }, 10000); // 10000 milliseconds = 10 seconds
+         }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,52 @@
+<nav id="sidenav-1" class="collapse d-lg-block sidebar collapse bg-white" data-mdb-sidenav-init>
+  <div class="position-sticky">
+
+    <div class="text-center mt-5 mb-5">
+      <img src="https://d2ris6qfzcz0wn.cloudfront.net/wp-content/uploads/sites/8/2023/10/Logo512-120x26.png.webp" alt="Theme Logo" class="img-fluid" />
+    </div>
+
+    <div class="list-group list-group-flush mx-1 mt-1">
+      
+      {% if user %}
+      <a href="/dashboard" class="list-group-item list-group-item-action py-2 ripple active" aria-current="true">
+        <div class="d-flex align-items-center">
+            <img src="{{ user.picture or '/static/avatar.jpg' }}" class="rounded-circle me-3" height="30" alt="Avatar" loading="lazy"/>
+            <span>{{ user.name }}</span>
+        </div>
+      </a>
+      {% else %}
+      <a href="/" class="list-group-item list-group-item-action py-2 ripple active" aria-current="true">
+        <i class="fas fa-home fa-fw me-3"></i><span>Home</span>
+      </a>
+      {% endif %}
+
+      <a href="#" class="list-group-item list-group-item-action py-2 ripple">
+        <i class="fas fa-wand-magic-sparkles fa-fw me-3"></i><span>AI Agent Wishes</span>
+      </a>
+      <a href="#" class="list-group-item list-group-item-action py-2 ripple">
+        <i class="fas fa-road fa-fw me-3"></i><span>Dev Roadmap</span>
+      </a>
+      <a href="#" class="list-group-item list-group-item-action py-2 ripple">
+        <i class="fas fa-bullhorn fa-fw me-3"></i><span>Announcements</span>
+      </a>
+    </div>
+
+    {% if not user %}
+      <div class="hidden mx-3 mt-4">
+        <hr>
+        <p class="text-muted small">SIGN IN WITH:</p>
+        <div class="d-grid gap-2">
+            <a href="/auth/login/google" class="btn btn-light btn-block d-flex align-items-center justify-content-center gap-2">
+                <img src="/static/logo-google.svg" alt="Google" height="20"> Google
+            </a>
+            <a href="/auth/login/github" class="btn btn-light btn-block d-flex align-items-center justify-content-center gap-2">
+                <img src="/static/logo-github.svg" alt="GitHub" height="20"> GitHub
+            </a>
+            <a href="/auth/login/microsoft" class="btn btn-light btn-block d-flex align-items-center justify-content-center gap-2">
+                <img src="/static/logo-microsoft.svg" alt="Microsoft" height="20"> Microsoft
+            </a>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</nav>

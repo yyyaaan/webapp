@@ -1,0 +1,22 @@
+services:
+  dev:
+    profiles:
+      - dev
+    build:
+      context: .
+    container_name: dev
+    entrypoint: uvicorn app.main:app --port 8001 --host 0.0.0.0 --reload
+    environment:
+      - TZ=Europe/Helsinki
+    env_file:
+      - .env
+    volumes:
+      - ./src:/home/appuser/src
+      - ./mnt:/mnt
+      - type: tmpfs
+        target: /tmp/cache
+        tmpfs:
+          mode: 01777
+          size: 99000000 # 99MB
+    ports:
+      - 8001:8001

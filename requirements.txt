@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+jinja2
+authlib
+pydantic-settings
+itsdangerous
+httpx
+motor
+databricks-sdk
