@@ -8,3 +8,4 @@ httpx
 motor
 databricks-sdk
 python-multipart
+openai

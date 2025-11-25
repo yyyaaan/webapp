@@ -1,7 +1,10 @@
 from asyncio import sleep
 from fastapi import APIRouter, Request
+from json import dumps, loads
 from logging import getLogger
 from starlette.responses import StreamingResponse
+
+from .agent_wish import chat_about_wishes
 
 logger = getLogger("chat")
 router = APIRouter()
@@ -11,36 +14,41 @@ router = APIRouter()
 @router.post("/chat/stream")
 async def chat_stream(request: Request):
     """
-    Streaming endpoint token-by-token response.
+    Streaming endpoint that returns structured JSON responses.
+    chat_history to formatted as [{"role": "user"/"assistant", "content": "..."}]
     """
     form = await request.form()
     prompt = (form.get("message") or "")
+    chat_history_str = form.get("chat_history", "[]")
+    
+    try:
+        chat_history = loads(chat_history_str)
+        logger.info(f"frontend send chat history n={len(chat_history)}, len={len(chat_history_str)}, roles={[msg['role'] for msg in chat_history]}")
+
+    except Exception as e:
+        chat_history = []
+        logger.warning(f"chat history parsing failed, defaulting to empty list. Error {e}")
+
+
+    completion = chat_about_wishes(chat_history).parsed.model_dump()
 
     async def generator():
-        # Echo back the user message first (client already renders it, so optional)
-        # Simulate an assistant generating a long sentence token-by-token
-        long_sentence = (
-            "This is a streamed assistant response demonstrating token by token "
-            "output. The server sends small chunks with short pauses to emulate "
-            "an agent gradually producing text, allowing the frontend to append "
-            "each piece as it arrives so users see incremental updates in real time."
-        )
+        # Simulate an assistant generating a response with output and state
+        output_text = completion.pop("next_question_to_user")
 
-        # If a prompt was provided, prepend a short acknowledgement
-        if prompt:
-            ack = f"Acknowledged prompt: {prompt}. "
-            for ch in ack.split():
-                await sleep(0.02)
-                yield (ch + " ").encode("utf-8")
-
-        for token in long_sentence.split():
+        # Simulate streaming the output token-by-token
+        accumulated_output = ""
+        for token in output_text.split():
             await sleep(0.06)
-            yield (token + " ").encode("utf-8")
+            accumulated_output += token + " "
+            # Send structured response as newline-delimited JSON
+            response_obj = {
+                "output": accumulated_output.strip(),
+                **completion
+            }
+            yield (dumps(response_obj) + "\n").encode("utf-8")
 
-        # final newline to mark end
-        yield b"\n"
-
-    return StreamingResponse(generator(), media_type="text/plain; charset=utf-8")
+    return StreamingResponse(generator(), media_type="application/x-ndjson; charset=utf-8")
 
 
 @router.post("/chat/feedback")

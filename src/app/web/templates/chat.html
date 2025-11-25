@@ -36,6 +36,9 @@
 </style>
 
 <script>
+// Client-side chat history: array of {role, content} for tracking conversation
+let chatHistory = [];
+
 document.getElementById('chat-form').addEventListener('submit', async function (e) {
   e.preventDefault();
   const input = document.getElementById('chat-input');
@@ -54,9 +57,13 @@ document.getElementById('chat-form').addEventListener('submit', async function (
   input.disabled = true;
   document.getElementById('chat-send').disabled = true;
 
-  // Prepare form data
+  // Add user message to chat history
+  chatHistory.push({role: 'user', content: msg});
+
+  // Prepare form data with chat history
   const formData = new FormData();
   formData.append('message', msg);
+  formData.append('chat_history', JSON.stringify(chatHistory));
 
   // Remove feedback buttons from previous assistant bubble (only latest gets them)
   const prevFeedback = document.querySelectorAll('.feedback-toolbar');
@@ -84,19 +91,61 @@ document.getElementById('chat-form').addEventListener('submit', async function (
   messages.appendChild(toolbar);
   messages.scrollTop = messages.scrollHeight;
 
+  // Store the full response object (JSON) for context
+  let fullResponseData = {};
+
   try {
     const resp = await fetch('/chat/stream', { method: 'POST', body: formData });
     if (!resp.body) throw new Error('No streaming body available');
 
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
+    let buffer = '';
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       const text = decoder.decode(value, { stream: true });
-      assistantBubble.textContent += text;
+      // Accumulate buffer and parse newline-delimited JSON
+      buffer += text;
+      const lines = buffer.split('\n');
+      // Process all complete lines
+      for (let i = 0; i < lines.length - 1; i++) {
+        const line = lines[i].trim();
+        if (line) {
+          try {
+            const jsonData = JSON.parse(line);
+            // Extract output for display
+            if (jsonData.output) {
+              assistantBubble.textContent = jsonData.output;
+            }
+            // Store the full response for later context
+            fullResponseData = jsonData;
+          } catch (e) {
+            console.warn('Failed to parse JSON line:', line, e);
+          }
+        }
+      }
+      // Keep incomplete line in buffer
+      buffer = lines[lines.length - 1];
       messages.scrollTop = messages.scrollHeight;
     }
+    // Parse any remaining buffer content
+    if (buffer.trim()) {
+      try {
+        const jsonData = JSON.parse(buffer);
+        if (jsonData.output) {
+          assistantBubble.textContent = jsonData.output;
+        }
+        fullResponseData = jsonData;
+      } catch (e) {
+        console.warn('Failed to parse final buffer:', buffer);
+      }
+    }
+    // Add assistant response to chat history (stringified full response object)
+    chatHistory.push({
+      role: 'assistant',
+      content: JSON.stringify(fullResponseData)
+    });
     // after streaming completes, wire up feedback buttons
     const attachedToolbar = document.querySelector('.feedback-toolbar');
     if (attachedToolbar) {
