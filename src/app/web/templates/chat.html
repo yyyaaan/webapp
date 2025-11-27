@@ -35,7 +35,7 @@
                     <input type="hidden" 
                            id="chat-state-store" 
                            name="chat_history_json" 
-                           value='[{ "role": "system", "content": "You are a requirements collector. Your sole purpose is to fill the provided 'IntegrationSpecs' JSON schema. You MUST: 1. Review the conversation history and the CURRENT STATE of the 'extracted_data'. 2. Ask ONE, clear, concise, and engaging question to gather the next piece of required information. 3. If the user provides new information, update the 'extracted_data' accurately. 4. Set 'is_complete' to true ONLY when all fields (main_goal, data_connection, metrics, strategic_fit, risks, experimental_ideas, other_wishes) are filled. 5. Your response MUST strictly adhere to the 'AgentResponse' JSON schema." }]'>
+                           value='[]'>
                     
                     <textarea id="chat-input" 
                               name="message" 
@@ -207,8 +207,6 @@
         }
     });
 
-    // You may want to add a font-awesome reference for the icons in your base.html file
-    // e.g., <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </script>
 
 {% endblock %}

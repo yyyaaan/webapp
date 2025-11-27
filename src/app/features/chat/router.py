@@ -1,5 +1,6 @@
 import json
 from fastapi import APIRouter, Request
+from html import escape
 from logging import getLogger
 from openai import OpenAI
 from pydantic import BaseModel, Field
@@ -12,8 +13,8 @@ router = APIRouter()
 # web ui router /chat location under /web
 
 client = OpenAI()
-model = "gpt-5-nano"  # gpt-5-nano quick, -mini for more realistic,
-system_prompt = """
+LLM_MODEL = "gpt-5-nano"  # gpt-5-nano quick, -mini for more realistic,
+SYSTEM_PROMPT = """
 You are an expert in designing AI agent with integrations that delight user's wishes
 Your goal is to collect business requirements in terms of 6 key aspects:
 1. Main Goal: What is the primary objective the user wants to achieve with this AI agent?
@@ -24,8 +25,10 @@ Your goal is to collect business requirements in terms of 6 key aspects:
 6. Experimental Ideas: Are there any innovative or experimental features the user would like to explore with?
 If user tells story that does not naturally fit to the above, put them under "Other Wishes".
 Ask 1 or 2 questions at a time. Make sure to use engaging and friendly tone, without excessive technical jargons.
-Do not stop until you have all 6 aspects, unless user explicitly want to leave a few empty.
+Do not stop until you have all 6 aspects, unless user explicitly want to leave a few empty, and when appropriate tell user that they can leave blank for now.
+Remember that user is not expected to tell long story, so if any small pieces of in info is available, you can rely on it.
 When ready, please tell user that you have all the info you need as show it as next question.
+
 """
 
 
@@ -57,43 +60,35 @@ async def chat_stream(request: Request):
     except json.JSONDecodeError:
         chat_history = []
         
-    # --- ADJUSTMENT 1: System Prompt Check ---
     if not chat_history or chat_history[0].get("role") != "system":
-        chat_history.insert(0, {"role": "system", "content": system_prompt})
+        chat_history.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
 
-    # Add the user message to the context
     chat_history.append({"role": "user", "content": user_message})
 
     try:
-        # --- ADJUSTMENT 2: Single, Blocking Parse (Data Integrity Guaranteed) ---
-        # This is fast enough for short outputs and guarantees the JSON schema.
         completion = client.beta.chat.completions.parse(
-            model="gpt-5",
+            model=LLM_MODEL,
             messages=chat_history,
             response_format=AgentResponse,
         )
 
-        # The message content is the guaranteed, complete JSON string
         structured_message = completion.choices[0].message
-        
-        # Extract the user-facing text from the parsed object
         response_text = completion.choices[0].message.parsed.next_question_to_user
         
         if not response_text:
              response_text = "I've successfully gathered all the required information. Thank you!"
 
-        # Update history with the guaranteed JSON output
         chat_history.append({"role": "assistant", "content": structured_message.content})
 
     except Exception as e:
-        # Fallback for API/Parsing errors
         response_text = f"🚨 An error occurred while processing your request: {e}. Please try again."
-        # If error, do not update history state
         chat_history.pop() 
 
     # Serialize the updated history for the OOB swap
-    new_history_json = json.dumps(chat_history)
+    new_history_json = escape(json.dumps(chat_history))
     
+    logger.info((json.dumps(chat_history, indent=2)))
+
     # --- Frontend Swap: We return the response text and the OOB update tag ---
     html_response = f"""
     <div class='bubble assistant' style='margin-right: auto; max-width: 90%;'>{response_text}</div>
@@ -105,7 +100,6 @@ async def chat_stream(request: Request):
            hx-swap-oob="true" />
     """
     
-    # We use HTMLResponse because we are returning a complete HTML fragment (the bubble + input)
     return HTMLResponse(content=html_response)
 
 
