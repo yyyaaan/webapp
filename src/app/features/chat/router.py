@@ -2,22 +2,22 @@ import json
 from fastapi import APIRouter, Request
 from html import escape
 from logging import getLogger
-from openai import OpenAI
 from pydantic import BaseModel, Field
 from starlette.responses import HTMLResponse, StreamingResponse
+from time import time
 from typing import Optional, List
 
+from .service import chat_service, client
 
 logger = getLogger("chat.wish")
 router = APIRouter()
 # web ui router /chat location under /web
 
-client = OpenAI()
 LLM_MODEL = "gpt-5-nano"  # gpt-5-nano quick, -mini for more realistic,
 SYSTEM_PROMPT = """
 You are an expert in designing AI agent with integrations that delight user's wishes
 Your goal is to collect business requirements in terms of 6 key aspects:
-1. Main Goal: What is the primary objective the user wants to achieve with this AI agent?
+1. Goal and functionality: What is the primary objective the user wants to achieve with this AI agent?
 2. Data Connection: What data sources or APIs should the agent connect to in order to function effectively?
 3. Metrics: What key performance indicators (KPIs) or metrics will be used to measure the success of?
 4. Strategic Fit: How does this AI agent align with the user's overall business strategy and goals?
@@ -34,7 +34,7 @@ When ready, please tell user that you have all the info you need as show it as n
 
 class IntegrationSpecs(BaseModel):
     # Data is placed first for model prioritization
-    main_goal: Optional[str] = Field(None, description="The primary objective or business problem this integration addresses.")
+    goal_and_func: Optional[str] = Field(None, description="The primary objective or business problem this integration addresses.")
     data_connection: Optional[str] = Field(None, description="The specific source/target systems involved (e.g., Salesforce, HubSpot).")
     metrics: Optional[str] = Field(None, description="The key performance indicators (KPIs) or metrics to be tracked (e.g., MRR, leads).")
     strategic_fit: Optional[str] = Field(None, description="How this integration aligns with the long-term business strategy.")
@@ -64,6 +64,9 @@ async def chat_stream(request: Request):
         chat_history.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
 
     chat_history.append({"role": "user", "content": user_message})
+    
+    # Generate ID for feedback
+    msg_id = f"msg_{int(time()*1000)}"
 
     try:
         completion = client.beta.chat.completions.parse(
@@ -71,27 +74,38 @@ async def chat_stream(request: Request):
             messages=chat_history,
             response_format=AgentResponse,
         )
-
         structured_message = completion.choices[0].message
-        response_text = completion.choices[0].message.parsed.next_question_to_user
-        
-        if not response_text:
-             response_text = "I've successfully gathered all the required information. Thank you!"
-
+        response_text = completion.choices[0].message.parsed.next_question_to_user or "Thank you!"
         chat_history.append({"role": "assistant", "content": structured_message.content})
 
     except Exception as e:
-        response_text = f"🚨 An error occurred while processing your request: {e}. Please try again."
+        response_text = f"🚨 Error: {e}"
         chat_history.pop() 
 
-    # Serialize the updated history for the OOB swap
     new_history_json = escape(json.dumps(chat_history))
-    
-    logger.info((json.dumps(chat_history, indent=2)))
 
-    # --- Frontend Swap: We return the response text and the OOB update tag ---
+    # Saving if done
+    if structured_message.parsed.is_complete:
+        chat_service.save_chat_state(msg_id, structured_message.parsed.extracted_data.dict())
+    
     html_response = f"""
-    <div class='bubble assistant' style='margin-right: auto; max-width: 90%;'>{response_text}</div>
+    <div class="message-container assistant-container mb-3">
+        <div class='bubble assistant'>{response_text}</div>
+        
+        <div class="feedback-row d-flex align-items-center gap-3 ms-2 mt-1">
+            <i class="fas fa-thumbs-up feedback-icon" 
+               data-msg-id="{msg_id}" 
+               data-type="up" 
+               title="Good response"></i>
+               
+            <i class="fas fa-thumbs-down feedback-icon" 
+               data-msg-id="{msg_id}" 
+               data-type="down" 
+               title="Bad response"></i>
+               
+            <span class="feedback-status small text-muted" id="status-{msg_id}"></span>
+        </div>
+    </div>
     
     <input type="hidden" 
            id="chat-state-store" 

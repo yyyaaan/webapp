@@ -8,28 +8,51 @@
     <div class="list-group list-group-flush mx-1 mt-1">
       
       {% if user %}
-      <a href="/dashboard" class="list-group-item list-group-item-action py-2 ripple active" aria-current="true">
+      <a href="/dashboard" class="list-group-item list-group-item-action py-2 ripple" data-nav-href="/dashboard">
         <div class="d-flex align-items-center">
             <img src="{{ user.picture or '/static/avatar.jpg' }}" class="rounded-circle me-3" height="30" alt="Avatar" loading="lazy"/>
             <span>{{ user.name }}</span>
         </div>
       </a>
       {% else %}
-      <a href="/" class="list-group-item list-group-item-action py-2 ripple active" aria-current="true">
+      <a href="/" class="list-group-item list-group-item-action py-2 ripple" data-nav-href="/home">
         <i class="fas fa-home fa-fw me-3"></i><span>Home</span>
       </a>
       {% endif %}
 
-      <a href="/chat?agent=wish" class="list-group-item list-group-item-action py-2 ripple">
+      <a href="/chat?agent=wish" class="list-group-item list-group-item-action py-2 ripple" data-nav-href="/chat">
         <i class="fas fa-wand-magic-sparkles fa-fw me-3"></i><span>AI Agent Wishes</span>
       </a>
-      <a href="#" class="list-group-item list-group-item-action py-2 ripple">
+      <a href="#" class="list-group-item list-group-item-action py-2 ripple" data-nav-href="/roadmap">
         <i class="fas fa-road fa-fw me-3"></i><span>Dev Roadmap</span>
       </a>
-      <a href="#" class="list-group-item list-group-item-action py-2 ripple">
+      <a href="#" class="list-group-item list-group-item-action py-2 ripple" data-nav-href="/announcements">
         <i class="fas fa-bullhorn fa-fw me-3"></i><span>Announcements</span>
       </a>
     </div>
+
+    <script>
+      function updateActiveSidebarLink() {
+        const pathname = window.location.pathname;
+        const links = document.querySelectorAll('.list-group-item[data-nav-href]');
+        links.forEach(link => {
+          const navHref = link.getAttribute('data-nav-href');
+          // Match the current pathname against the nav-href
+          if (pathname.startsWith(navHref)) {
+            link.classList.add('active');
+            link.setAttribute('aria-current', 'page');
+          } else {
+            link.classList.remove('active');
+            link.removeAttribute('aria-current');
+          }
+        });
+      }
+      
+      // Update on page load
+      document.addEventListener('DOMContentLoaded', updateActiveSidebarLink);
+      // Also update when history changes (for SPA-like behavior)
+      window.addEventListener('popstate', updateActiveSidebarLink);
+    </script>
 
     {% if not user %}
       <div class="hidden mx-3 mt-4">

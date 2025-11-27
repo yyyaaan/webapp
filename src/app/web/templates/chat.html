@@ -2,48 +2,50 @@
 
 {% block title %}Agent Requirements Collector{% endblock %}
 
+{% block head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% endblock %}
+
 {% block content %}
 
-<div class="row">
-    <div class="col-12 col-lg-8 mx-auto mb-4">
-        <h4 class="text-muted small mb-3">🎯 Current Requirements Status:</h4>
+<div class="row mb-4">
+    <div class="col-12">
+        <h4 class="text-muted small mb-2 ms-1">🎯 Current Requirements Status:</h4>
         <div id="integration-specs-display" class="row g-2">
-            <div class="col-6 col-md-4"><div class="spec-box empty">Main Goal: N/A</div></div>
-            <div class="col-6 col-md-4"><div class="spec-box empty">Data Connection: N/A</div></div>
-            <div class="col-6 col-md-4"><div class="spec-box empty">Metrics: N/A</div></div>
-            <div class="col-6 col-md-4"><div class="spec-box empty">Strategic Fit: N/A</div></div>
-            <div class="col-6 col-md-4"><div class="spec-box empty">Risks: N/A</div></div>
-            <div class="col-6 col-md-4"><div class="spec-box empty">Experimental Ideas: N/A</div></div>
-            <div class="col-12"><div class="spec-box empty">Other Wishes: N/A</div></div>
-        </div>
+            </div>
     </div>
-    
+</div>
+
+<div class="row">
     <div class="col-12 col-lg-8 mx-auto">
-        <div class="card">
+        <div class="card border-0 shadow-sm" style="border-radius: 20px;">
             <div class="card-body d-flex flex-column" style="height:70vh">
                 
-                <div id="chat-messages" class="flex-grow-1 overflow-auto mb-3">
-                    <div class="bubble assistant" style="margin-right: auto; max-width: 90%;">Hello! I am here to listen to your wishes and requirements for AI integration. Let's get started!</div>
+                <div id="chat-messages" class="flex-grow-1 overflow-auto mb-3 pe-2">
+                    <div class="message-container assistant-container mb-3">
+                        <div class="bubble assistant">Hello! I am here to listen to your wishes and requirements for AI integration. Let's get started!</div>
+                    </div>
                 </div>
 
                 <form id="chat-form"
                       hx-post="/chat/stream" 
                       hx-target="#chat-messages" 
-                      hx-swap="beforeend"
-                      class="input-group">
+                      hx-swap="beforeend">
                     
-                    <input type="hidden" 
-                           id="chat-state-store" 
-                           name="chat_history_json" 
-                           value='[]'>
+                    <input type="hidden" id="chat-state-store" name="chat_history_json" value='[]'>
                     
-                    <textarea id="chat-input" 
-                              name="message" 
-                              class="form-control" 
-                              placeholder="Describe your goal (e.g., 'Increase sales performance')..." 
-                              rows="2"></textarea>
-                    
-                    <button id="chat-send" class="btn btn-primary" type="submit">Send</button>
+                    <div class="chat-input-pill d-flex align-items-center">
+                        <textarea id="chat-input" 
+                                  name="message" 
+                                  class="form-control border-0 shadow-none bg-transparent" 
+                                  placeholder="Type your message here..." 
+                                  rows="1"
+                                  style="resize: none; overflow-y: hidden;"></textarea>
+                        
+                        <button id="chat-send" class="btn btn-primary rounded-circle ms-2" type="submit" style="width: 40px; height: 40px;">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
                 </form>
 
             </div>
@@ -51,117 +53,152 @@
     </div>
 </div>
 
-
 <style>
-    /* Base Styles */
-    .bubble { max-width: 80%; padding: .6rem 1rem; border-radius: 16px; margin-bottom: .5rem; display: inline-block; word-break: break-word; white-space: pre-wrap;}
-    .bubble.user { background: #e9f5ff; margin-left: auto; align-self: flex-end; }
-    .bubble.assistant { background: #f1f1f1; margin-right: auto; align-self: flex-start; }
-    .bubble.loading { background: #ffe9e9; color: #cc3333; margin-right: auto; }
-    #chat-messages { display:flex; flex-direction:column; gap:6px; }
-    
-    /* Specs Boxes Styling */
+    /* --- Chat Bubbles --- */
+    .bubble { padding: 12px 18px; border-radius: 18px; display: inline-block; word-break: break-word; white-space: pre-wrap; font-size: 0.95rem; line-height: 1.5; }
+    .bubble.user { background: #007bff; color: white; border-bottom-right-radius: 4px; margin-left: auto; }
+    .bubble.assistant { background: #f0f2f5; color: #1c1e21; border-bottom-left-radius: 4px; }
+    .bubble.loading { background: transparent; color: #888; font-style: italic; padding-left: 0;}
+
+    /* --- Message Containers --- */
+    .message-container { display: flex; flex-direction: column; width: 100%; }
+    .user-container { align-items: flex-end; }
+    .assistant-container { align-items: flex-start; }
+
+    /* --- Feedback Icons (Outside Bubble) --- */
+    .feedback-icon { cursor: pointer; color: #ccc; font-size: 0.9rem; transition: color 0.2s; }
+    .feedback-icon:hover { color: #666; }
+    .feedback-icon.active-up { color: #28a745; }
+    .feedback-icon.active-down { color: #dc3545; }
+
+    /* --- Rounded Input Pill --- */
+    .chat-input-pill {
+        background: #f0f2f5;
+        border-radius: 25px;
+        padding: 5px 10px 5px 20px;
+        border: 1px solid transparent;
+        transition: border-color 0.2s, background 0.2s;
+    }
+    .chat-input-pill:focus-within {
+        background: #fff;
+        border-color: #007bff;
+        box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.1);
+    }
+
+    /* --- Spec Boxes --- */
     .spec-box {
-        padding: 8px 10px;
-        border-radius: 6px;
-        font-size: 0.9rem;
-        font-weight: 500;
-        min-height: 40px;
-        border: 1px solid #e0e0e0;
-        background-color: #ffffff;
+        padding: 10px 12px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        min-height: 55px;
+        border: 1px solid #eee;
+        background-color: #fff;
         color: #333;
-        transition: all 0.2s ease-in-out;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        cursor: help; /* Indicates hoverability */
     }
-    .spec-box.empty {
-        background-color: #f7f7f7;
-        color: #999;
-        font-style: italic;
-    }
-    .spec-box.filled {
-        background-color: #e6ffe6; /* Light Green */
-        border-color: #8cff8c;
-    }
-    .spec-box span.field-label {
-        font-weight: 700;
-        display: block;
-        margin-bottom: 2px;
-        color: #555;
-        font-size: 0.8rem;
-    }
+    .spec-box.filled { background-color: #f0fff4; border-color: #c6f6d5; color: #22543d; }
+    .spec-box .field-label { display: block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #718096; margin-bottom: 4px; letter-spacing: 0.5px; }
+    
+    /* Scrollbar Polish */
+    #chat-messages::-webkit-scrollbar { width: 6px; }
+    #chat-messages::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 10px; }
 </style>
 
 <script>
-    // --- HTMX-Friendly JavaScript ---
-    
-    // 1. Enter Key Submission (kept your logic)
-    document.getElementById('chat-input').addEventListener('keydown', function (e) {
+    // 1. Auto-resize textarea logic
+    const tx = document.getElementById('chat-input');
+    tx.addEventListener("input", function(){
+        this.style.height = "auto";
+        this.style.height = (this.scrollHeight) + "px";
+        if(this.value === "") this.style.height = "auto"; // Reset on clear
+    });
+
+    // 2. Submit on Enter
+    tx.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             htmx.trigger('#chat-form', 'submit'); 
+            this.style.height = "auto"; // Reset height
         }
     });
 
-    // 2. Add Loading Spinner/Text before submission
+    // 3. Before Request (User Bubble & Loader)
     document.body.addEventListener('htmx:beforeRequest', function(evt) {
-        const input = document.getElementById('chat-input');
-        const messages = document.getElementById('chat-messages');
+        if(evt.target.id !== "chat-form") return;
 
-        // Render user bubble immediately
-        const msg = input.value.trim();
-        if (msg) {
-            const userBubble = document.createElement('div');
-            userBubble.className = 'bubble user';
-            userBubble.textContent = msg;
-            messages.appendChild(userBubble);
+        const messages = document.getElementById('chat-messages');
+        const input = document.getElementById('chat-input');
+        
+        if (input.value.trim()) {
+            // Wrap user message in container for alignment
+            const container = document.createElement('div');
+            container.className = 'message-container user-container mb-3';
+            container.innerHTML = `<div class='bubble user'>${input.value}</div>`;
+            messages.appendChild(container);
         }
         
-        // Add Loading bubble
-        const loadingBubble = document.createElement('div');
-        loadingBubble.id = 'agent-loading'; // Give it an ID to target for removal
-        loadingBubble.className = 'bubble loading';
-        loadingBubble.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Thinking...';
-        messages.appendChild(loadingBubble);
+        // Add Loader
+        const loader = document.createElement('div');
+        loader.id = 'agent-loading';
+        loader.className = 'message-container assistant-container mb-3';
+        loader.innerHTML = '<div class="bubble loading"><i class="fas fa-circle-notch fa-spin me-2"></i> Thinking...</div>';
+        messages.appendChild(loader);
 
         input.value = '';
         messages.scrollTop = messages.scrollHeight; 
     });
 
-    // 3. Remove Loading Spinner after response and update specs display
+    // 4. After Swap (Render Specs + Clean up)
     document.body.addEventListener('htmx:afterSwap', function(evt) {
-        const messages = document.getElementById('chat-messages');
-        const loadingBubble = document.getElementById('agent-loading');
-        if (loadingBubble) {
-            loadingBubble.remove(); // Remove the loading message after response is swapped
-        }
+        const loading = document.getElementById('agent-loading');
+        if (loading) loading.remove();
         
-        // Scroll to the bottom to see the new message and remove the loading spinner
-        messages.scrollTop = messages.scrollHeight; 
-
-        // Update Specs Display after the OOB swap ensures we use the latest state
+        document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight; 
+        
+        // Update Specs
         const stateInput = document.getElementById('chat-state-store');
         if (stateInput) {
             try {
-                // Get the latest history and find the last structured response
                 const fullHistory = JSON.parse(stateInput.value);
-                const lastAssistantMessage = fullHistory.filter(m => m.role === 'assistant').pop();
-                
-                if (lastAssistantMessage && lastAssistantMessage.content) {
-                    const agentResponse = JSON.parse(lastAssistantMessage.content);
-                    renderSpecsDisplay(agentResponse.extracted_data);
-                }
-            } catch (e) {
-                console.warn("Could not parse history or agent response for display:", e);
-            }
+                const lastMsg = fullHistory.filter(m => m.role === 'assistant').pop();
+                if (lastMsg) renderSpecsDisplay(JSON.parse(lastMsg.content).extracted_data);
+            } catch (e) { console.warn(e); }
         }
     });
 
-    // --- 4. Function to Render the Beautified Specs ---
+    // 5. Feedback Click Handler
+    document.addEventListener('click', async function(e) {
+        if (!e.target.classList.contains('feedback-icon')) return;
+        
+        const icon = e.target;
+        const msgId = icon.dataset.msgId;
+        const type = icon.dataset.type;
+        const statusSpan = document.getElementById(`status-${msgId}`);
+        
+        // Visual feedback immediately
+        statusSpan.textContent = "...";
+        
+        try {
+            const res = await fetch('/chat/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message_id: msgId, feedback: type })
+            });
+            if(res.ok) {
+                statusSpan.textContent = "";
+                // Toggle active class
+                icon.parentElement.querySelectorAll('.feedback-icon').forEach(i => i.classList.remove('active-up', 'active-down'));
+                icon.classList.add(type === 'up' ? 'active-up' : 'active-down');
+            }
+        } catch (err) { console.error(err); }
+    });
+
+    // 6. Specs Renderer (With Tooltip Logic)
     function renderSpecsDisplay(specs) {
         const displayContainer = document.getElementById('integration-specs-display');
-        if (!displayContainer) return;
-
         const fieldMap = {
-            main_goal: "Main Goal",
+            goal_and_func: "Primary Goal & Function",
             data_connection: "Data Connection",
             metrics: "Metrics",
             strategic_fit: "Strategic Fit",
@@ -170,43 +207,30 @@
             other_wishes: "Other Wishes"
         };
         
-        // Helper function to check for non-empty string content
-        const hasContent = (value) => value && value.trim() !== 'N/A' && value.trim() !== '';
-
         let html = '';
-        let specs_html = '';
-        
         for (const [key, label] of Object.entries(fieldMap)) {
-            const value = specs[key] || 'N/A';
-            const isFilled = hasContent(value);
-            const sizeClass = (key === 'other_wishes') ? 'col-12' : 'col-6 col-md-4';
+            const value = specs[key] || '';
+            const isFilled = value && value !== 'N/A' && value.trim() !== '';
             
-            // Limit text length for display purposes in the box
-            const displayValue = hasContent(value) ? value.substring(0, 100) + (value.length > 100 ? '...' : '') : 'N/A';
+            // Truncate logic
+            const displayValue = isFilled ? (value.length > 70 ? value.substring(0, 70) + '...' : value) : 'N/A';
+            
+            // Layout: 4 items per row on large screens (col-lg-3), 2 on medium (col-md-6)
+            const sizeClass = (key === 'goal_and_func') ? 'col-6' : 'col-6 col-md-4 col-lg-3';
+            
+            // Escape quotes for the title attribute
+            const safeTitle = value.replace(/"/g, '&quot;');
 
-            specs_html += `
+            html += `
                 <div class="${sizeClass}">
-                    <div class="spec-box ${isFilled ? 'filled' : 'empty'}">
-                        <span class="field-label">${label}:</span> 
+                    <div class="spec-box ${isFilled ? 'filled' : 'empty'}" title="${safeTitle}">
+                        <span class="field-label">${label}</span> 
                         ${displayValue}
                     </div>
                 </div>
             `;
         }
-        
-        displayContainer.innerHTML = specs_html;
+        displayContainer.innerHTML = html;
     }
-    
-    // Initial call to render the empty state when the page loads
-    document.addEventListener('DOMContentLoaded', () => {
-        // Find the initial state from the hidden input and render it
-        const stateInput = document.getElementById('chat-state-store');
-        if (stateInput && stateInput.value) {
-             // The very first state is just the system prompt, so we initialize with empty specs
-             renderSpecsDisplay({});
-        }
-    });
-
 </script>
-
 {% endblock %}
