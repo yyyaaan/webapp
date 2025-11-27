@@ -1,7 +1,5 @@
 {% extends 'base.html' %}
-
 {% block title %}Agent Requirements Collector{% endblock %}
-
 {% block head %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 {% endblock %}
@@ -11,8 +9,7 @@
 <div class="row mb-4">
     <div class="col-12">
         <h4 class="text-muted small mb-2 ms-1">🎯 Current Requirements Status:</h4>
-        <div id="integration-specs-display" class="row g-2">
-            </div>
+        <div id="integration-specs-display" class="row g-2"></div>
     </div>
 </div>
 
@@ -34,6 +31,8 @@
                     
                     <input type="hidden" id="chat-state-store" name="chat_history_json" value='[]'>
                     
+                    <input type="hidden" id="session-id-store" name="session_id" value=''>
+                    
                     <div class="chat-input-pill d-flex align-items-center">
                         <textarea id="chat-input" 
                                   name="message" 
@@ -47,6 +46,12 @@
                         </button>
                     </div>
                 </form>
+
+                <div class="text-center mt-2">
+                    <a href="/chat" class="text-muted small text-decoration-none opacity-75 hover-opacity-100">
+                        <i class="fas fa-rotate-right me-1"></i> Start a new session
+                    </a>
+                </div>
 
             </div>
         </div>
@@ -167,34 +172,7 @@
         }
     });
 
-    // 5. Feedback Click Handler
-    document.addEventListener('click', async function(e) {
-        if (!e.target.classList.contains('feedback-icon')) return;
-        
-        const icon = e.target;
-        const msgId = icon.dataset.msgId;
-        const type = icon.dataset.type;
-        const statusSpan = document.getElementById(`status-${msgId}`);
-        
-        // Visual feedback immediately
-        statusSpan.textContent = "...";
-        
-        try {
-            const res = await fetch('/chat/feedback', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message_id: msgId, feedback: type })
-            });
-            if(res.ok) {
-                statusSpan.textContent = "";
-                // Toggle active class
-                icon.parentElement.querySelectorAll('.feedback-icon').forEach(i => i.classList.remove('active-up', 'active-down'));
-                icon.classList.add(type === 'up' ? 'active-up' : 'active-down');
-            }
-        } catch (err) { console.error(err); }
-    });
-
-    // 6. Specs Renderer (With Tooltip Logic)
+    // 5. Specs Renderer (With Tooltip Logic)
     function renderSpecsDisplay(specs) {
         const displayContainer = document.getElementById('integration-specs-display');
         const fieldMap = {
@@ -232,5 +210,105 @@
         }
         displayContainer.innerHTML = html;
     }
+
+    // feedback system 
+    function prepareFeedbackContext(historyValue, targetMsgId, vote) {
+        let chatHistory;
+        try {
+            chatHistory = JSON.parse(historyValue);
+        } catch(e) {
+            console.error("Failed to parse history for feedback context.", e);
+            return [];
+        }
+
+        const sanitizedContext = [];
+        
+        chatHistory.forEach((msg) => {
+            if (msg.role === 'system') return; // Skip system prompt
+
+            const contextMsg = {
+                role: msg.role,
+                content_snapshot: msg.content,
+                extracted_data_snapshot: null, // Still pull out structured data for logging
+                user_feedback: null,
+            };
+
+            // 1. Identify Target Message and Mark Feedback
+            if (msg.message_id === targetMsgId) {
+                contextMsg.user_feedback = vote;
+            } else if (msg.feedback) {
+                 // Preserve feedback from previous votes on other messages
+                 contextMsg.user_feedback = msg.feedback;
+            }
+            
+            // 2. Extract structured data for logging purposes (if available)
+            if (msg.role === 'assistant') {
+                try {
+                    const payload = JSON.parse(msg.content);
+                    contextMsg.extracted_data_snapshot = payload.extracted_data;
+                } catch (e) {
+                    // Ignore non-JSON assistant messages
+                }
+            }
+            
+            sanitizedContext.push(contextMsg);
+        });
+        
+        return sanitizedContext;
+    }
+
+
+    // --- FEEDBACK CLICK HANDLER ---
+    document.addEventListener('click', async function(e) {
+        if (!e.target.classList.contains('feedback-icon')) return;
+        
+        const icon = e.target;
+        const msgId = icon.dataset.msgId; 
+        const type = icon.dataset.type;
+        const statusSpan = document.getElementById(`status-${msgId}`);
+        
+        // 1. Gather Context & Prepare Sanitized Snapshot
+        const sessionId = document.getElementById('session-id-store').value;
+        const historyValue = document.getElementById('chat-state-store').value;
+        
+        // This function now precisely targets the message using msgId
+        const sanitizedContext = prepareFeedbackContext(historyValue, msgId, type);
+
+        statusSpan.textContent = "...";
+        
+        try {
+            const res = await fetch('/chat/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    session_id: sessionId,
+                    message_id: msgId, 
+                    feedback: type,
+                    sanitized_context: sanitizedContext
+                })
+            });
+            
+            if(res.ok) {
+                statusSpan.textContent = "Saved!";
+                
+                // IMPORTANT: Update the live history in the DOM to reflect the vote
+                // ------------------------------------------------------------------
+                let liveHistory = JSON.parse(historyValue);
+                liveHistory.forEach(msg => {
+                    if (msg.message_id === msgId) {
+                        msg.feedback = type; // Set the feedback field in the live history
+                    }
+                });
+                // Write the updated history back to the hidden input
+                document.getElementById('chat-state-store').value = JSON.stringify(liveHistory).replace(/'/g, '&#39;'); 
+                // We use replace to safely handle internal single quotes if they existed, though the backend's escape() is primary.
+                // ------------------------------------------------------------------
+
+                // Toggle active class visually
+                icon.parentElement.querySelectorAll('.feedback-icon').forEach(i => i.classList.remove('active-up', 'active-down'));
+                icon.classList.add(type === 'up' ? 'active-up' : 'active-down');
+            }
+        } catch (err) { console.error(err); statusSpan.textContent = "Failed"; }
+    });
 </script>
 {% endblock %}

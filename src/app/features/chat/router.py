@@ -5,7 +5,8 @@ from logging import getLogger
 from pydantic import BaseModel, Field
 from starlette.responses import HTMLResponse, StreamingResponse
 from time import time
-from typing import Optional, List
+from typing import Any, Dict, List, Optional
+from uuid import uuid4
 
 from .service import chat_service, client
 
@@ -28,8 +29,14 @@ Ask 1 or 2 questions at a time. Make sure to use engaging and friendly tone, wit
 Do not stop until you have all 6 aspects, unless user explicitly want to leave a few empty, and when appropriate tell user that they can leave blank for now.
 Remember that user is not expected to tell long story, so if any small pieces of in info is available, you can rely on it.
 When ready, please tell user that you have all the info you need as show it as next question.
-
 """
+
+
+class FeedbackPayload(BaseModel):
+    session_id: str
+    message_id: str
+    feedback: str # 'up' or 'down'
+    sanitized_context: List[Dict[str, Any]] # The full context
 
 
 class IntegrationSpecs(BaseModel):
@@ -54,6 +61,10 @@ async def chat_stream(request: Request):
     form = await request.form()
     user_message = form.get("message", "")
     chat_history_str = form.get("chat_history_json", "[]")
+    
+    session_id = form.get("session_id")
+    if not session_id:
+        session_id = str(uuid4())
 
     try:
         chat_history: List[dict] = json.loads(chat_history_str)
@@ -64,19 +75,26 @@ async def chat_stream(request: Request):
         chat_history.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
 
     chat_history.append({"role": "user", "content": user_message})
-    
-    # Generate ID for feedback
+
     msg_id = f"msg_{int(time()*1000)}"
+
+    # frontend has message_id and feedback --> remove before sending to LLM
+    chat_history_for_completion = [
+        {k: v for k, v in msg.items() if k not in ["message_id", "feedback"]}
+        for msg in chat_history
+    ]
+    logger.info(f"Chat history for completion: len={len(chat_history_for_completion)}, keys={[msg.get('role', '') for msg in chat_history_for_completion]}")
 
     try:
         completion = client.beta.chat.completions.parse(
             model=LLM_MODEL,
-            messages=chat_history,
+            messages=chat_history_for_completion,
             response_format=AgentResponse,
         )
         structured_message = completion.choices[0].message
-        response_text = completion.choices[0].message.parsed.next_question_to_user or "Thank you!"
-        chat_history.append({"role": "assistant", "content": structured_message.content})
+        response_text = completion.choices[0].message.parsed.next_question_to_user or "Thank you! We have now collected all the necessary information, and well noted your wishes."
+
+        chat_history.append({"role": "assistant", "content": structured_message.content, "message_id": msg_id, "feedback": None})
 
     except Exception as e:
         response_text = f"🚨 Error: {e}"
@@ -86,7 +104,7 @@ async def chat_stream(request: Request):
 
     # Saving if done
     if structured_message.parsed.is_complete:
-        chat_service.save_chat_state(msg_id, structured_message.parsed.extracted_data.dict())
+        chat_service.save_chat_state(session_id, structured_message.parsed.extracted_data.dict(), title="wish", mode="a")
     
     html_response = f"""
     <div class="message-container assistant-container mb-3">
@@ -97,12 +115,10 @@ async def chat_stream(request: Request):
                data-msg-id="{msg_id}" 
                data-type="up" 
                title="Good response"></i>
-               
             <i class="fas fa-thumbs-down feedback-icon" 
                data-msg-id="{msg_id}" 
                data-type="down" 
                title="Bad response"></i>
-               
             <span class="feedback-status small text-muted" id="status-{msg_id}"></span>
         </div>
     </div>
@@ -112,25 +128,27 @@ async def chat_stream(request: Request):
            name="chat_history_json" 
            value='{new_history_json}' 
            hx-swap-oob="true" />
+           
+    <input type="hidden" 
+           id="session-id-store" 
+           name="session_id" 
+           value="{session_id}" 
+           hx-swap-oob="true" />
     """
     
     return HTMLResponse(content=html_response)
 
 
 @router.post("/chat/feedback")
-async def chat_feedback(request: Request):
-    """
-    Receive simple feedback for a specific assistant message.
-    Expects JSON body: {"message_id": "msg-...", "feedback": "up"|"down"}
-    """
-    try:
-        data = await request.json()
-    except Exception:
-        data = {}
-
-    message_id = data.get("message_id")
-    feedback = data.get("feedback")
-
-    logger.info(f"Received feedback: message_id={message_id} feedback={feedback}")
-
-    return {"status": "ok", "message_id": message_id, "feedback": feedback}
+async def chat_feedback(payload: FeedbackPayload):
+    log_entry = {
+        "event": "user_feedback",
+        "timestamp": time(),
+        "session_id": payload.session_id,
+        "target_message_id": payload.message_id,
+        "vote": payload.feedback,
+        "context_snapshot": payload.sanitized_context
+    }
+    
+    chat_service.save_chat_state(payload.session_id, log_entry, title="feedback", mode="w")
+    return {"status": "ok"}
