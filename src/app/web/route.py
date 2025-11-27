@@ -59,3 +59,11 @@ async def read_chat(request: Request, user: dict | None = Depends(get_current_us
         {"request": request, "user": user, "agent": agent},
     )
 
+
+@router.get("/roadmap", response_class=HTMLResponse, tags=["Web"])
+async def read_roadmap(request: Request, user: dict | None = Depends(get_current_user)):
+    """Render the roadmap page."""
+    return templates.TemplateResponse(
+        "roadmap.html",
+        {"request": request, "user": user},
+    )
