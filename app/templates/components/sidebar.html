@@ -1,0 +1,36 @@
+<aside class="fixed left-0 top-0 h-full w-64 bg-white shadow-lg p-4">
+    <div class="mb-8">
+        <h2 class="text-xl font-bold text-gray-800">Home Server</h2>
+        <p class="text-sm text-gray-500">Control Panel</p>
+    </div>
+
+    <nav class="space-y-2">
+        <a href="/"
+           class="flex items-center px-4 py-3 rounded-lg text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors">
+            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+            </svg>
+            Dashboard
+        </a>
+
+        <div class="pt-4 pb-2">
+            <p class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Features</p>
+        </div>
+
+        {% for feature in features %}
+        <a href="{{ feature.url }}"
+           class="flex items-center px-4 py-3 rounded-lg text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors">
+            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"/>
+            </svg>
+            {{ feature.name }}
+        </a>
+        {% endfor %}
+    </nav>
+
+    <div class="absolute bottom-4 left-4 right-4">
+        <a href="/logout" class="btn w-full bg-red-500 hover:bg-red-600 text-white">
+            Logout
+        </a>
+    </div>
+</aside>
