@@ -27,6 +27,8 @@ class GoogleOAuthProvider(OAuthProvider):
                 },
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
             )
+            if response.status_code != 200:
+                raise Exception(f"Token exchange failed: {response.status_code} - {response.text}")
             response.raise_for_status()
             return response.json()
 
@@ -40,8 +42,8 @@ class GoogleOAuthProvider(OAuthProvider):
             user_data = response.json()
 
             return {
-                "id": user_data.get("sub"),
+                "id": user_data.get("sub") or user_data.get("email"),
                 "email": user_data.get("email"),
-                "name": user_data.get("name"),
+                "name": user_data.get("name") or "User",
                 "avatar_url": user_data.get("picture"),
             }

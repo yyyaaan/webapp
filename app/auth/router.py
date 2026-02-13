@@ -104,30 +104,31 @@ async def oauth_callback(
     user = await db.users.find_one(
         {
             "provider": provider,
-            "provider_id": user_info["id"],
+            "provider_id": user_info.get("id") or "unknown",
         }
     )
 
     if not user:
         user_data = User(
-            email=user_info["email"],
-            name=user_info["name"],
+            email=user_info.get("email") or f"{provider}@local",
+            name=user_info.get("name") or "User",
             avatar_url=user_info.get("avatar_url"),
             provider=provider,
-            provider_id=user_info["id"],
+            provider_id=user_info.get("id") or "unknown",
         )
         result = await db.users.insert_one(user_data.model_dump(by_alias=True))
         user = await db.users.find_one({"_id": result.inserted_id})
 
     jwt_token = create_access_token(data={"sub": str(user["_id"]), "email": user["email"]})
 
-    return {
-        "access_token": jwt_token,
-        "token_type": "bearer",
-        "user": UserResponse(
-            id=str(user["_id"]), email=user["email"], name=user["name"], avatar_url=user.get("avatar_url"), provider=user["provider"]
-        ),
-    }
+    jwt_token = create_access_token(data={"sub": str(user["_id"]), "email": user["email"]})
+
+    return HTMLResponse(f"""
+    <script>
+        document.cookie = "access_token={jwt_token}; path=/; max-age={7*24*60*60}";
+        window.location.href = "/";
+    </script>
+    """)
 
 
 @router.get("/header-login", response_class=HTMLResponse)
