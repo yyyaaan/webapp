@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException, Query, Request
 import secrets
 
-from app.core.database import get_database
+from app.core.collections import users_collection
+from app.core.security import create_access_token
 from app.core.security import create_access_token
 from app.core.config import get_settings
 from app.auth.providers import registry, OAuthProviderConfig
@@ -89,19 +90,10 @@ async def oauth_callback(
     code: str = Query(...),
     state: str = Query(...),
 ):
-    db = get_database()
+    collection = users_collection.collection
     provider_client = registry.get(provider)
-    if not provider_client:
-        raise HTTPException(status_code=400, detail=f"Provider '{provider}' not configured")
 
-    token_data = await provider_client.exchange_code_for_token(
-        code, f"{settings.frontend_url}/auth/callback/{provider}"
-    )
-    access_token = token_data.get("access_token")
-
-    user_info = await provider_client.get_user_info(access_token)
-
-    user = await db.users.find_one(
+    user = await collection.find_one(
         {
             "provider": provider,
             "provider_id": user_info.get("id") or "unknown",
@@ -116,10 +108,11 @@ async def oauth_callback(
             provider=provider,
             provider_id=user_info.get("id") or "unknown",
         )
-        result = await db.users.insert_one(user_data.model_dump(by_alias=True))
-        user = await db.users.find_one({"_id": result.inserted_id})
-
-    jwt_token = create_access_token(data={"sub": str(user["_id"]), "email": user["email"]})
+        # Exclude _id when None to let MongoDB auto-generate ObjectId
+        user_dict = user_data.model_dump(by_alias=True, exclude_none=True)
+        user_dict.pop('_id', None)
+        result = await collection.insert_one(user_dict)
+        user = await collection.find_one({"_id": result.inserted_id})
 
     jwt_token = create_access_token(data={"sub": str(user["_id"]), "email": user["email"]})
 
