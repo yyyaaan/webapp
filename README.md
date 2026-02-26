@@ -2,6 +2,8 @@
 
 A modular FastAPI home server with MongoDB backend, OAuth authentication (GitHub, Google, Microsoft), header-based authentication (Databricks, Azure App Service), and HTMX + Tailwind CSS frontend.
 
+Please check and maintain docs/ for app specified architecture and design decision.
+
 ## Features
 
 - **Modular Architecture**: Independent features with separate schemas, models, and routers
@@ -25,6 +27,8 @@ A modular FastAPI home server with MongoDB backend, OAuth authentication (GitHub
 │   │   ├── router.py      # Auth routes
 │   │   ├── middleware.py  # Auth middleware (get_current_user)
 │   │   ├── header_auth.py # Header-based auth (Databricks, Azure)
+│   │   ├── user_service.py # Shared user creation service
+│   │   └── schemas.py     # Auth Pydantic schemas
 │   │   └── schemas.py     # Auth Pydantic schemas
 │   ├── core/              # Core application components
 │   │   ├── config.py      # App configuration
@@ -39,7 +43,7 @@ A modular FastAPI home server with MongoDB backend, OAuth authentication (GitHub
 │   ├── schemas/           # Pydantic schemas
 │   │   └── base.py       # Base schemas
 │   ├── features/          # Modular features
-│   │   └── example/      # Example feature (Todo List)
+│   │   └── todos/       # Todo List feature
 │   │       ├── model.py  # MongoDB model
 │   │       ├── schema.py # Pydantic schemas
 │   │       └── router.py # Routes (with feature_info)
@@ -272,6 +276,19 @@ await todos_collection.collection.insert_one({"title": "My todo"})
 - **Templating**: Jinja2
 
 ## File Overview
+
+| File | Purpose |
+|------|---------|
+| `main.py` | App entry point, root route |
+| `app/auth/router.py` | OAuth callbacks, auth endpoints |
+| `app/auth/middleware.py` | `get_current_user` dependency |
+| `app/auth/header_auth.py` | Header-based auth providers |
+| `app/auth/user_service.py` | Shared user creation service |
+| `app/core/collections.py` | MongoDB collection helpers |
+| `app/core/features.py` | Auto-discovery of feature routers |
+| `app/templates/landing.html` | Public landing page (no auth required) |
+| `app/templates/dashboard/dashboard.html` | Authenticated dashboard |
+| `app/templates/todos/todos.html` | Todo list page with sidebar |
 
 | File | Purpose |
 |------|---------|

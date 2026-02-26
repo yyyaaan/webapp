@@ -1,66 +1,22 @@
-# MongoDB Access Patterns: Collection Style vs Model Style
+# MongoDB Patterns Guide
 
-## Collection Style (Recommended for this project)
+This document describes the MongoDB patterns used in this project.
 
-**What we're using now:**
+## Collection Style (Recommended)
 
-```python
-# Direct motor collection access
-db = get_database()
-user = await db.users.find_one({"_id": ObjectId(user_id)})
-await db.users.insert_one({"name": "John", "email": "john@example.com"})
-```
-
-**Advantages:**
-- Simpler, less abstraction
-- Direct control over queries
-- Works natively with Motor's async API
-- No ODM overhead or magic
-- Pydantic handles validation separately
-
-**Disadvantages:**
-- Need to manually convert ObjectId to strings
-- No built-in relationship handling (not relevant for MongoDB anyway)
-
-## Model Style (ODM)
-
-**What this looks like (using Beanie/MongoEngine):**
+This project uses the **Collection Helper pattern** for MongoDB access:
 
 ```python
-class User(Document):
-    name: str
-    email: str = EmailField()
+from app.core.collections import users_collection, todos_collection
 
-# Usage
-user = await User.find_one(User.id == user_id)
-await User(name="John", email="john@example.com").insert()
+# Find user
+user = await users_collection.collection.find_one({"email": "test@example.com"})
+
+# Insert document
+await todos_collection.collection.insert_one({"title": "My todo", "completed": False})
 ```
 
-**Advantages:**
-- Cleaner looking code
-- Built-in validation
-- Reference fields
-- Query builder syntax
-
-**Disadvantages:**
-- Another layer to learn/debug
-- Magic behavior can be confusing
-- Performance overhead
-- MongoDB is schemaless - ODM fights this design
-
-## Recommendation for This Project
-
-**Use Collection Style** for these reasons:
-
-1. **You're fluent with Motor** - no need to learn another layer
-2. **Pydantic provides validation** - models are for validation, not database access
-3. **MongoDB's strength is schema flexibility** - ODMs try to enforce schemas
-4. **Simpler debugging** - see exactly what queries are being sent
-5. **Better performance** - no conversion overhead
-
-## Improvements Made
-
-### 1. Collection Helper (`app/core/collections.py`)
+### Collection Helper (`app/core/collections.py`)
 
 ```python
 class CollectionHelper:
@@ -74,29 +30,88 @@ class CollectionHelper:
             self._collection = get_collection(self._collection_name)
         return self._collection
 
-# Usage
+# Pre-defined collections
 users_collection = CollectionHelper("users")
-await users_collection.collection.find_one({"email": "test@example.com"})
+todos_collection = CollectionHelper("todo_items")
+features_collection = CollectionHelper("features")
 ```
 
-### 2. Updated PyObjectId for Pydantic v2
+### Benefits
+
+- **Lazy initialization**: Collection is only accessed when needed
+- **Centralized**: All collection names defined in one place
+- **Type-safe**: Uses Motor's async API directly
+- **Simple**: No ODM overhead
+
+## Model Validation (Pydantic)
+
+Models are used for **validation only**, not database access:
 
 ```python
-class PyObjectId(str):
-    @classmethod
-    def __get_pydantic_core_schema__(cls, source_type: Any, handler) -> core_schema.CoreSchema:
-        # Proper Pydantic v2 validation
+from app.features.todos.model import TodoItem
+
+# Create validated model
+todo = TodoItem(
+    title="My task",
+    description="Task description",
+    content="Detailed notes...",
+    column_width=6,
+)
+
+# Convert to dict (exclude None and _id)
+todo_dict = todo.model_dump(by_alias=True, exclude_none=True)
+todo_dict.pop('_id', None)
+
+# Insert
+await todos_collection.collection.insert_one(todo_dict)
 ```
 
-### 3. Modern Python Syntax Updates
+## Common Patterns
 
-- `Optional[str]` → `str | None`
-- `List[str]` → `list[str]`
-- `Dict[str, Any]` → `dict[str, Any]`
-- `datetime.utcnow()` → `datetime.now(timezone.utc)`
+### Find or Create User
 
-### 4. Simplified Auth Router
+```python
+from app.auth.user_service import find_or_create_user, create_user_token
 
-- Removed unused imports
-- Direct collection access via motor
-- Cleaner error handling
+# Find or create user
+user = await find_or_create_user(
+    provider="github",
+    provider_id="12345",
+    email="user@example.com",
+    name="John Doe",
+    avatar_url="https://...",
+)
+
+# Create JWT token
+token = create_user_token(user)
+```
+
+### Query with Sorting
+
+```python
+# Get all todos sorted by order
+todos = await todos_collection.collection.find({}).sort("order", 1).to_list(length=100)
+```
+
+### Update Document
+
+```python
+from datetime import datetime, timezone
+from bson import ObjectId
+
+await todos_collection.collection.update_one(
+    {"_id": ObjectId(todo_id)},
+    {"$set": {"completed": True, "updated_at": datetime.now(timezone.utc)}}
+)
+```
+
+## PyObjectId for Pydantic v2
+
+```python
+from app.models.base import PyObjectId
+
+class TodoItem(MongoBaseModel):
+    id: PyObjectId | None = Field(None, alias="_id")
+```
+
+This provides proper validation for MongoDB ObjectId fields in Pydantic models.

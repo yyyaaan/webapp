@@ -1,18 +1,13 @@
 from fastapi import APIRouter, HTTPException, Query, Request
 import secrets
 
-from app.core.collections import users_collection
-from app.core.security import create_access_token
-from app.core.security import create_access_token
 from app.core.config import get_settings
 from app.auth.providers import registry, OAuthProviderConfig
 from app.auth.github import GitHubOAuthProvider
 from app.auth.google import GoogleOAuthProvider
 from app.auth.microsoft import MicrosoftOAuthProvider
 from app.auth.schemas import AuthUrlResponse, TokenResponse, UserResponse
-from app.models.user import User
-from app.auth.header_auth import header_auth_manager
-from bson import ObjectId
+from app.auth.user_service import find_or_create_user, create_user_token
 from fastapi.responses import HTMLResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -20,6 +15,7 @@ settings = get_settings()
 
 
 def init_oauth_providers():
+    """Initialize OAuth providers based on config"""
     if settings.github_client_id and settings.github_client_secret:
         registry.register(
             "github",
@@ -67,12 +63,16 @@ def init_oauth_providers():
 
 
 @router.get("/providers")
-async def list_providers():
-    return {"providers": registry.list_providers()}
+async def list_providers(request: Request):
+    """List all available authentication providers"""
+    from app.auth.middleware import get_available_auth_providers
+    providers = get_available_auth_providers(request)
+    return {"providers": providers}
 
 
 @router.get("/login/{provider}", response_model=AuthUrlResponse)
 async def login(provider: str):
+    """Start OAuth login flow"""
     provider_client = registry.get(provider)
     if not provider_client:
         raise HTTPException(status_code=400, detail=f"Provider '{provider}' not configured")
@@ -90,31 +90,32 @@ async def oauth_callback(
     code: str = Query(...),
     state: str = Query(...),
 ):
-    collection = users_collection.collection
+    """Handle OAuth callback and create session"""
     provider_client = registry.get(provider)
 
-    user = await collection.find_one(
-        {
-            "provider": provider,
-            "provider_id": user_info.get("id") or "unknown",
-        }
+    if not provider_client:
+        raise HTTPException(status_code=400, detail=f"Provider '{provider}' not configured")
+
+    # Exchange code for access token
+    token_data = await provider_client.exchange_code_for_token(
+        code, f"{settings.frontend_url}/auth/callback/{provider}"
+    )
+    access_token = token_data.get("access_token")
+
+    # Get user info from OAuth provider
+    user_info = await provider_client.get_user_info(access_token)
+
+    # Find or create user
+    user = await find_or_create_user(
+        provider=provider,
+        provider_id=user_info.get("id") or "unknown",
+        email=user_info.get("email"),
+        name=user_info.get("name"),
+        avatar_url=user_info.get("avatar_url"),
     )
 
-    if not user:
-        user_data = User(
-            email=user_info.get("email") or f"{provider}@local",
-            name=user_info.get("name") or "User",
-            avatar_url=user_info.get("avatar_url"),
-            provider=provider,
-            provider_id=user_info.get("id") or "unknown",
-        )
-        # Exclude _id when None to let MongoDB auto-generate ObjectId
-        user_dict = user_data.model_dump(by_alias=True, exclude_none=True)
-        user_dict.pop('_id', None)
-        result = await collection.insert_one(user_dict)
-        user = await collection.find_one({"_id": result.inserted_id})
-
-    jwt_token = create_access_token(data={"sub": str(user["_id"]), "email": user["email"]})
+    # Create JWT token
+    jwt_token = create_user_token(user)
 
     return HTMLResponse(f"""
     <script>
@@ -126,24 +127,9 @@ async def oauth_callback(
 
 @router.get("/header-login", response_class=HTMLResponse)
 async def header_login():
-    """
-    Endpoint to handle header-based authentication redirect.
-    This can be used when headers are present but user needs to be redirected to set the cookie.
-    """
+    """Redirect to trigger header-based authentication"""
     return HTMLResponse("""
     <script>
-        // Try to reload the page to trigger header authentication
         window.location.href = "/";
     </script>
     """)
-
-
-@router.get("/providers")
-async def list_providers_with_headers(request: Request):
-    """
-    List all available providers including header-based ones for the current request.
-    """
-    from app.auth.middleware import get_available_auth_providers
-    
-    providers = get_available_auth_providers(request)
-    return {"providers": providers}

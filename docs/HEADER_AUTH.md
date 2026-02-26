@@ -100,12 +100,23 @@ You can test header authentication manually:
 # Test Databricks headers
 curl -H "X-Databricks-User-Email: test@example.com" \
      -H "X-Databricks-User-Name: Test User" \
-     http://localhost:9999
+     http://localhost:8001
 
 # Test Azure App Service headers
 PRINCIPAL=$(echo '{"userDetails":"azureuser@example.com","userId":"123"}' | base64)
 curl -H "X-MS-CLIENT-PRINCIPAL: $PRINCIPAL" \
-     http://localhost:9999
+     http://localhost:8001
+curl -H "X-Databricks-User-Email: test@example.com" \
+     -H "X-Databricks-User-Name: Test User" \
+     http://localhost:8001
+
+# Test Azure App Service headers
+
+# Test Azure App Service headers
+PRINCIPAL=$(echo '{"userDetails":"azureuser@example.com","userId":"123"}' | base64)
+curl -H "X-MS-CLIENT-PRINCIPAL: $PRINCIPAL" \
+     http://localhost:8001
+```
 ```
 
 ## Migration from OAuth-only
