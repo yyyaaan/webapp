@@ -4,7 +4,8 @@ import json
 import base64
 import binascii
 from app.core.config import get_settings
-from app.core.database import get_database
+from app.core.collections import users_collection
+from app.core.security import create_access_token
 from app.core.security import create_access_token
 from app.models.user import User
 
@@ -106,9 +107,10 @@ class HeaderAuthManager:
     async def _create_or_get_user(self, user_info: Dict[str, Any]) -> str:
         """Create user or get existing user and return JWT token"""
         db = get_database()
+        collection = users_collection.collection
         
         # Check if user already exists
-        user = await db.users.find_one({
+        user = await collection.find_one({
             "provider": user_info["provider"],
             "provider_id": user_info["provider_id"],
         })
@@ -122,8 +124,12 @@ class HeaderAuthManager:
                 provider_id=user_info["provider_id"],
                 avatar_url=user_info.get("avatar_url"),
             )
-            result = await db.users.insert_one(user_data.model_dump(by_alias=True))
-            user = await db.users.find_one({"_id": result.inserted_id})
+            # Exclude _id when None to let MongoDB auto-generate ObjectId
+            user_dict = user_data.model_dump(by_alias=True, exclude_none=True)
+            # Also explicitly remove _id if it's None (since exclude_none might not catch the alias)
+            user_dict.pop('_id', None)
+            result = await collection.insert_one(user_dict)
+            user = await collection.find_one({"_id": result.inserted_id})
         
         # Create JWT token
         jwt_token = create_access_token(data={

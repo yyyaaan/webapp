@@ -3,10 +3,9 @@ from fastapi import APIRouter, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from app.core.database import get_database
-from app.core.security import decode_access_token
 from app.core.collections import todos_collection
 from app.features.example.model import TodoItem
+from app.auth.middleware import get_current_user
 
 router = APIRouter(prefix="/todos", tags=["todos"])
 templates = Jinja2Templates(directory="app/templates")
@@ -18,13 +17,12 @@ feature_info = {
 }
 
 
-async def get_current_user(request: Request) -> dict | None:
-    token = request.cookies.get("access_token")
-    if not token:
-        return None
-    payload = decode_access_token(token)
-    return payload
-
+async def require_user(request: Request) -> dict:
+    """Dependency that requires authentication"""
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return user
 
 @router.get("/", response_class=HTMLResponse)
 async def list_todos(request: Request, user: dict | None = Depends(get_current_user)):
@@ -54,7 +52,9 @@ async def create_todo(
         return HTMLResponse("<div>Please login</div>")
 
     todo = TodoItem(title=title, description=description)
-    await todos_collection.collection.insert_one(todo.model_dump(by_alias=True))
+    todo_dict = todo.model_dump(by_alias=True, exclude_none=True)
+    todo_dict.pop('_id', None)
+    await todos_collection.collection.insert_one(todo_dict)
 
     todos = await todos_collection.collection.find({"completed": False}).to_list(length=100)
 

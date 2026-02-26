@@ -10,4 +10,3 @@ python-multipart
 email-validator
 jinja2
 python-dotenv
-

@@ -27,10 +27,11 @@ templates = Jinja2Templates(directory="app/templates")
 
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
-    # Use unified authentication system
+    # Check for authentication
     user = await get_current_user(request)
     
     if user:
+        # Authenticated - show dashboard
         features = discover_features()
         return templates.TemplateResponse(
             "dashboard/dashboard.html",
@@ -40,10 +41,14 @@ async def root(request: Request):
                 "features": [{"name": f.name, "url": f.url} for f in features],
             },
         )
-
-    # Get available auth providers (OAuth + header-based)
+    
+    # Not authenticated - show landing page (no login required)
     providers = get_available_auth_providers(request)
-    return templates.TemplateResponse("auth/login.html", {"request": request, "providers": providers})
+    return templates.TemplateResponse("landing.html", {
+        "request": request, 
+        "providers": providers,
+        "user": None
+    })
 
 
 @app.get("/logout", response_class=HTMLResponse)
