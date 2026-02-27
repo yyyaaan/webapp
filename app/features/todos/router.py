@@ -174,7 +174,7 @@ def render_todo_card(todo: dict) -> HTMLResponse:
     
     html = f'''
     <div class="col-span-{column_width} todo-card" data-id="{todo_id}">
-        <div class="card h-full flex flex-col {opacity_class}">
+        <div class="cyber-card h-full flex flex-col {opacity_class}">
             <div class="flex justify-between items-start mb-3">
                 <h3 class="font-semibold text-lg text-[#e0e0e0] {line_through}">
                     {title}
