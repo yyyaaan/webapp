@@ -59,6 +59,7 @@
                         
                         <!-- Action Buttons -->
                         <div class="flex gap-1 mb-3">
+                            {% if is_admin %}
                             <!-- Edit button -->
                             <button 
                                 onclick="editTodo('{{ todo['_id'] }}', '{{ todo.title }}', '{{ todo.description or '' }}', '{{ todo.content or '' }}', {{ todo.column_width }})"
@@ -67,7 +68,19 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                 </svg>
                             </button>
-                            <!-- Toggle button - HTMX -->
+                            <!-- Delete button -->
+                            <button 
+                                hx-delete="/todos/{{ todo['_id'] }}"
+                                hx-target="closest .todo-card"
+                                hx-swap="outerHTML"
+                                hx-confirm="Are you sure you want to delete this todo?"
+                                class="text-[#6b7280] hover:text-[#ff3366] p-1 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                            {% endif %}
+                            <!-- Toggle button - available to all users -->
                             <button 
                                 hx-post="/todos/{{ todo['_id'] }}/toggle"
                                 hx-target="closest .todo-card"
@@ -82,17 +95,6 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                 </svg>
                                 {% endif %}
-                            </button>
-                            <!-- Delete button - HTMX -->
-                            <button 
-                                hx-delete="/todos/{{ todo['_id'] }}"
-                                hx-target="closest .todo-card"
-                                hx-swap="outerHTML"
-                                hx-confirm="Are you sure you want to delete this todo?"
-                                class="text-[#6b7280] hover:text-[#ff3366] p-1 transition-colors">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                </svg>
                             </button>
                         </div>
                         
@@ -270,11 +272,11 @@ function resetForm() {
 
 function editTodo(id, title, description, content, columnWidth) {
     document.getElementById('modal-title').textContent = 'EDIT TASK';
-    document.getElementById('submit-text').textContent = 'SAVE';
     document.getElementById('edit-id').value = id;
     document.getElementById('todo-title').value = title;
     document.getElementById('todo-description').value = description;
     document.getElementById('todo-content').value = content;
+    document.getElementById('todo-column-width').value = columnWidth;
     document.getElementById('todo-column-width').value = columnWidth;
     widthDisplay.textContent = columnWidth;
     

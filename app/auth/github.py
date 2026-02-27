@@ -1,5 +1,5 @@
 import httpx
-from app.auth.providers import OAuthProvider, OAuthProviderConfig
+from app.auth.providers import OAuthProvider
 
 
 class GitHubOAuthProvider(OAuthProvider):
