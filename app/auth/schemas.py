@@ -17,4 +17,5 @@ class UserResponse(BaseModel):
     email: str
     name: str
     avatar_url: str | None = None
+    role: str = "user"
     provider: str

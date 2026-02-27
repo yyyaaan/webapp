@@ -1,13 +1,13 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 
 from app.core.config import get_settings
 from app.core.database import connect_to_mongodb, close_mongodb
 from app.auth.router import router as auth_router, init_oauth_providers
 from app.core.features import discover_features
-from app.core.security import decode_access_token
 from app.auth.middleware import get_current_user, get_available_auth_providers
 
 settings = get_settings()
@@ -24,6 +24,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
 templates = Jinja2Templates(directory="app/templates")
 
+# Serve static files for cyberpunk.css
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
 
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
@@ -37,7 +40,12 @@ async def root(request: Request):
             "dashboard/dashboard.html",
             {
                 "request": request,
-                "user": {"name": user.get("name", "User"), "email": user.get("email", ""), "avatar_url": None},
+                "user": {
+                    "name": user.get("name", "User"), 
+                    "email": user.get("email", ""), 
+                    "avatar_url": None,
+                    "role": user.get("role", "user"),
+                },
                 "features": [{"name": f.name, "url": f.url} for f in features],
             },
         )
