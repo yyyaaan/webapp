@@ -106,17 +106,6 @@ curl -H "X-Databricks-User-Email: test@example.com" \
 PRINCIPAL=$(echo '{"userDetails":"azureuser@example.com","userId":"123"}' | base64)
 curl -H "X-MS-CLIENT-PRINCIPAL: $PRINCIPAL" \
      http://localhost:8001
-curl -H "X-Databricks-User-Email: test@example.com" \
-     -H "X-Databricks-User-Name: Test User" \
-     http://localhost:8001
-
-# Test Azure App Service headers
-
-# Test Azure App Service headers
-PRINCIPAL=$(echo '{"userDetails":"azureuser@example.com","userId":"123"}' | base64)
-curl -H "X-MS-CLIENT-PRINCIPAL: $PRINCIPAL" \
-     http://localhost:8001
-```
 ```
 
 ## Migration from OAuth-only
@@ -125,7 +114,7 @@ Existing OAuth configurations continue to work unchanged. The header-based authe
 
 ### Benefits of Adding Header Auth
 
-1. **Zero-Click Authentication**: Users are automatically logged in based on platform身份
+1. **Zero-Click Authentication**: Users are automatically logged in based on platform identity
 2. **Enterprise Integration**: Seamless integration with enterprise identity systems
 3. **Multiple Environments**: Same codebase works across different deployment targets
 4. **Backward Compatibility**: OAuth continues to work for public-facing deployments

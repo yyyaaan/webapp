@@ -29,7 +29,6 @@ Please check and maintain docs/ for app specified architecture and design decisi
 │   │   ├── header_auth.py # Header-based auth (Databricks, Azure)
 │   │   ├── user_service.py # Shared user creation service
 │   │   └── schemas.py     # Auth Pydantic schemas
-│   │   └── schemas.py     # Auth Pydantic schemas
 │   ├── core/              # Core application components
 │   │   ├── config.py      # App configuration
 │   │   ├── database.py    # MongoDB connection
@@ -290,13 +289,3 @@ await todos_collection.collection.insert_one({"title": "My todo"})
 | `app/templates/dashboard/dashboard.html` | Authenticated dashboard |
 | `app/templates/todos/todos.html` | Todo list page with sidebar |
 
-| File | Purpose |
-|------|---------|
-| `main.py` | App entry point, root route |
-| `app/auth/router.py` | OAuth callbacks, auth endpoints |
-| `app/auth/middleware.py` | `get_current_user` dependency |
-| `app/auth/header_auth.py` | Header-based auth providers |
-| `app/core/collections.py` | MongoDB collection helpers |
-| `app/core/features.py` | Auto-discovery of feature routers |
-| `app/templates/landing.html` | Public landing page (no auth required) |
-| `app/templates/dashboard/dashboard.html` | Authenticated dashboard |
