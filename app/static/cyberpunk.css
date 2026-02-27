@@ -1,0 +1,713 @@
+/* ================================================
+   CYBERPUNK / GLITCH DESIGN SYSTEM
+   "High-Tech, Low-Life" Aesthetic
+   ================================================ */
+
+/* -------------------------------------------------
+   1. DESIGN TOKENS (CSS Custom Properties)
+   ------------------------------------------------- */
+:root {
+  /* Colors - Dark Mode */
+  --cp-background: #0a0a0f;
+  --cp-foreground: #e0e0e0;
+  --cp-card: #12121a;
+  --cp-muted: #1c1c2e;
+  --cp-muted-foreground: #6b7280;
+  
+  /* Accent Colors - Neon */
+  --cp-accent: #00ff88;
+  --cp-accent-secondary: #ff00ff;
+  --cp-accent-tertiary: #00d4ff;
+  
+  /* Borders & Inputs */
+  --cp-border: #2a2a3a;
+  --cp-input: #12121a;
+  --cp-ring: #00ff88;
+  --cp-destructive: #ff3366;
+  
+  /* Typography */
+  --cp-font-heading: "Orbitron", "Share Tech Mono", monospace;
+  --cp-font-body: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  --cp-font-accent: "Share Tech Mono", monospace;
+  
+  /* Spacing */
+  --cp-spacing-xs: 0.25rem;
+  --cp-spacing-sm: 0.5rem;
+  --cp-spacing-md: 1rem;
+  --cp-spacing-lg: 1.5rem;
+  --cp-spacing-xl: 2rem;
+  --cp-spacing-2xl: 3rem;
+  
+  /* Border Radius */
+  --cp-radius-none: 0px;
+  --cp-radius-sm: 2px;
+  --cp-radius-base: 4px;
+  
+  /* Transitions */
+  --cp-transition-fast: 100ms steps(4);
+  --cp-transition-base: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --cp-transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* -------------------------------------------------
+   2. BASE STYLES
+   ------------------------------------------------- */
+.cyber-body {
+  font-family: var(--cp-font-body);
+  background-color: var(--cp-background);
+  color: var(--cp-foreground);
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+}
+
+/* Headings */
+.cyber-h1,
+.cyber-h2,
+.cyber-h3,
+.cyber-h4,
+.cyber-h5,
+.cyber-h6 {
+  font-family: var(--cp-font-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.cyber-h1 {
+  font-size: 3rem;
+  font-weight: 900;
+}
+
+.cyber-h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.cyber-h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* -------------------------------------------------
+   3. SCANLINE OVERLAY
+   ------------------------------------------------- */
+.cyber-scanlines {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.15) 2px,
+    rgba(0, 0, 0, 0.15) 4px
+  );
+}
+
+/* Animated scanline effect */
+.cyber-scanlines-animated::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: rgba(0, 255, 136, 0.1);
+  animation: scanline 8s linear infinite;
+  opacity: 0.3;
+}
+
+/* -------------------------------------------------
+   4. GRID/CIRCUIT BACKGROUND PATTERN
+   ------------------------------------------------- */
+.cyber-grid-bg {
+  background-image:
+    linear-gradient(rgba(0, 255, 136, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 136, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+/* Corner gradient accents */
+.cyber-gradient-corners {
+  position: relative;
+}
+
+.cyber-gradient-corners::before,
+.cyber-gradient-corners::after {
+  content: "";
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  filter: blur(100px);
+  pointer-events: none;
+}
+
+.cyber-gradient-corners::before {
+  top: -100px;
+  left: -100px;
+  background: rgba(0, 255, 136, 0.1);
+}
+
+.cyber-gradient-corners::after {
+  bottom: -100px;
+  right: -100px;
+  background: rgba(255, 0, 255, 0.08);
+}
+
+/* -------------------------------------------------
+   5. NEON GLOW EFFECTS
+   ------------------------------------------------- */
+.cyber-glow {
+  box-shadow: 
+    0 0 5px var(--cp-accent),
+    0 0 10px rgba(0, 255, 136, 0.25),
+    0 0 20px rgba(0, 255, 136, 0.15);
+}
+
+.cyber-glow-sm {
+  box-shadow: 
+    0 0 3px var(--cp-accent),
+    0 0 6px rgba(0, 255, 136, 0.2);
+}
+
+.cyber-glow-lg {
+  box-shadow: 
+    0 0 10px var(--cp-accent),
+    0 0 20px rgba(0, 255, 136, 0.4),
+    0 0 40px rgba(0, 255, 136, 0.2);
+}
+
+.cyber-glow-secondary {
+  box-shadow: 
+    0 0 5px var(--cp-accent-secondary),
+    0 0 20px rgba(255, 0, 255, 0.4);
+}
+
+.cyber-glow-tertiary {
+  box-shadow: 
+    0 0 5px var(--cp-accent-tertiary),
+    0 0 20px rgba(0, 212, 255, 0.4);
+}
+
+/* Text glow */
+.cyber-text-glow {
+  text-shadow: 
+    0 0 10px var(--cp-accent),
+    0 0 20px rgba(0, 255, 136, 0.5);
+}
+
+.cyber-text-glow-secondary {
+  text-shadow: 
+    0 0 10px var(--cp-accent-secondary),
+    0 0 20px rgba(255, 0, 255, 0.5);
+}
+
+/* -------------------------------------------------
+   6. CHAMFERED CORNERS (Clip-path)
+   ------------------------------------------------- */
+.cyber-chamfer {
+  clip-path: polygon(
+    0 10px,
+    10px 0,
+    calc(100% - 10px) 0,
+    100% 10px,
+    100% calc(100% - 10px),
+    calc(100% - 10px) 100%,
+    10px 100%,
+    0 calc(100% - 10px)
+  );
+}
+
+.cyber-chamfer-sm {
+  clip-path: polygon(
+    0 6px,
+    6px 0,
+    calc(100% - 6px) 0,
+    100% 6px,
+    100% calc(100% - 6px),
+    calc(100% - 6px) 100%,
+    6px 100%,
+    0 calc(100% - 6px)
+  );
+}
+
+/* -------------------------------------------------
+   7. BUTTON STYLES
+   ------------------------------------------------- */
+.cyber-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  font-family: var(--cp-font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all var(--cp-transition-base);
+  border: none;
+  outline: none;
+}
+
+/* Default - transparent with border */
+.cyber-btn-default {
+  background: transparent;
+  border: 2px solid var(--cp-accent);
+  color: var(--cp-accent);
+}
+
+.cyber-btn-default:hover {
+  background: var(--cp-accent);
+  color: var(--cp-background);
+  box-shadow: 
+    0 0 10px var(--cp-accent),
+    0 0 20px rgba(0, 255, 136, 0.4);
+}
+
+/* Secondary - magenta */
+.cyber-btn-secondary {
+  background: transparent;
+  border: 2px solid var(--cp-accent-secondary);
+  color: var(--cp-accent-secondary);
+}
+
+.cyber-btn-secondary:hover {
+  background: var(--cp-accent-secondary);
+  color: var(--cp-background);
+  box-shadow: 
+    0 0 10px var(--cp-accent-secondary),
+    0 0 20px rgba(255, 0, 255, 0.4);
+}
+
+/* Outline - subtle border */
+.cyber-btn-outline {
+  background: transparent;
+  border: 1px solid var(--cp-border);
+  color: var(--cp-foreground);
+}
+
+.cyber-btn-outline:hover {
+  border-color: var(--cp-accent);
+  color: var(--cp-accent);
+  box-shadow: var(--cyber-glow-sm);
+}
+
+/* Ghost - no border */
+.cyber-btn-ghost {
+  background: transparent;
+  border: none;
+  color: var(--cp-foreground);
+}
+
+.cyber-btn-ghost:hover {
+  background: rgba(0, 255, 136, 0.1);
+  color: var(--cp-accent);
+}
+
+/* Glitch - CTA button with solid background */
+.cyber-btn-glitch {
+  background: var(--cp-accent);
+  border: 2px solid var(--cp-accent);
+  color: var(--cp-background);
+  font-weight: 700;
+}
+
+.cyber-btn-glitch:hover {
+  filter: brightness(1.1);
+  box-shadow: 
+    0 0 10px var(--cp-accent),
+    0 0 20px rgba(0, 255, 136, 0.6),
+    0 0 40px rgba(0, 255, 136, 0.3);
+}
+
+/* Danger */
+.cyber-btn-danger {
+  background: transparent;
+  border: 2px solid var(--cp-destructive);
+  color: var(--cp-destructive);
+}
+
+.cyber-btn-danger:hover {
+  background: var(--cp-destructive);
+  color: var(--cp-background);
+  box-shadow: 
+    0 0 10px var(--cp-destructive),
+    0 0 20px rgba(255, 51, 102, 0.4);
+}
+
+/* Focus states */
+.cyber-btn:focus-visible {
+  outline: none;
+  ring: 2px;
+  ring-color: var(--cp-ring);
+  ring-offset: 2px;
+  ring-offset-color: var(--cp-background);
+}
+
+/* -------------------------------------------------
+   8. CARD STYLES
+   ------------------------------------------------- */
+.cyber-card {
+  background: var(--cp-card);
+  border: 1px solid var(--cp-border);
+  padding: 1.5rem;
+  transition: all var(--cp-transition-slow);
+}
+
+.cyber-card:hover {
+  border-color: var(--cp-accent);
+  box-shadow: var(--cyber-glow-sm);
+  transform: translateY(-2px);
+}
+
+/* Terminal variant */
+.cyber-card-terminal {
+  background: var(--cp-background);
+  border: 1px solid var(--cp-border);
+  padding: 1.5rem;
+  position: relative;
+}
+
+.cyber-card-terminal::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 32px;
+  background: var(--cp-muted);
+  border-bottom: 1px solid var(--cp-border);
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  gap: 8px;
+}
+
+.cyber-card-terminal::after {
+  content: "";
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ff5f56;
+  box-shadow: 
+    20px 0 0 #ffbd2e,
+    40px 0 0 #27c93f;
+}
+
+/* Holographic variant */
+.cyber-card-holographic {
+  background: rgba(28, 28, 46, 0.3);
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+  box-shadow: var(--cyber-glow-sm);
+}
+
+/* Corner accents for holographic */
+.cyber-card-holographic::before,
+.cyber-card-holographic::after {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--cp-accent);
+}
+
+.cyber-card-holographic::before {
+  top: -1px;
+  left: -1px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.cyber-card-holographic::after {
+  bottom: -1px;
+  right: -1px;
+  border-left: none;
+  border-top: none;
+}
+
+/* -------------------------------------------------
+   9. INPUT STYLES
+   ------------------------------------------------- */
+.cyber-input-wrapper {
+  position: relative;
+}
+
+.cyber-input-prefix {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--cp-accent);
+  font-family: var(--cp-font-body);
+  font-size: 1rem;
+  z-index: 1;
+}
+
+.cyber-input {
+  width: 100%;
+  padding: 0.75rem;
+  padding-left: 2rem;
+  background: var(--cp-input);
+  border: 1px solid var(--cp-border);
+  color: var(--cp-foreground);
+  font-family: var(--cp-font-body);
+  font-size: 0.875rem;
+  transition: all var(--cp-transition-base);
+}
+
+.cyber-input::placeholder {
+  color: var(--cp-muted-foreground);
+}
+
+.cyber-input:focus {
+  outline: none;
+  border-color: var(--cp-accent);
+  box-shadow: var(--cyber-glow-sm);
+}
+
+/* -------------------------------------------------
+   10. GLITCH EFFECTS
+   ------------------------------------------------- */
+.cyber-glitch {
+  position: relative;
+  animation: glitch 2s infinite;
+}
+
+.cyber-glitch::before,
+.cyber-glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.cyber-glitch::before {
+  left: 2px;
+  text-shadow: -2px 0 var(--cp-accent-secondary);
+  clip-path: inset(0 0 0 0);
+  animation: glitch-1 2s infinite linear alternate-reverse;
+}
+
+.cyber-glitch::after {
+  left: -2px;
+  text-shadow: 2px 0 var(--cp-accent-tertiary);
+  clip-path: inset(0 0 0 0);
+  animation: glitch-2 3s infinite linear alternate-reverse;
+}
+
+/* RGB Shift text effect */
+.cyber-rgb {
+  animation: rgbShift 2s infinite;
+}
+
+/* -------------------------------------------------
+   11. KEYFRAME ANIMATIONS
+   ------------------------------------------------- */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes glitch {
+  0%, 100% { transform: translate(0); }
+  20% { transform: translate(-2px, 2px); }
+  40% { transform: translate(2px, -2px); }
+  60% { transform: translate(-1px, -1px); }
+  80% { transform: translate(1px, 1px); }
+}
+
+@keyframes glitch-1 {
+  0%, 100% { clip-path: inset(20% 0 80% 0); }
+  20% { clip-path: inset(60% 0 10% 0); }
+  40% { clip-path: inset(40% 0 50% 0); }
+  60% { clip-path: inset(80% 0 5% 0); }
+  80% { clip-path: inset(10% 0 70% 0); }
+}
+
+@keyframes glitch-2 {
+  0%, 100% { clip-path: inset(10% 0 60% 0); }
+  20% { clip-path: inset(80% 0 5% 0); }
+  40% { clip-path: inset(30% 0 20% 0); }
+  60% { clip-path: inset(15% 0 80% 0); }
+  80% { clip-path: inset(55% 0 10% 0); }
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes rgbShift {
+  0%, 100% { 
+    text-shadow: -2px 0 var(--cp-accent-secondary), 2px 0 var(--cp-accent-tertiary);
+  }
+  50% { 
+    text-shadow: 2px 0 var(--cp-accent-secondary), -2px 0 var(--cp-accent-tertiary);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { 
+    box-shadow: 0 0 5px var(--cp-accent), 0 0 10px rgba(0, 255, 136, 0.3);
+  }
+  50% { 
+    box-shadow: 0 0 10px var(--cp-accent), 0 0 20px rgba(0, 255, 136, 0.5), 0 0 30px rgba(0, 255, 136, 0.3);
+  }
+}
+
+@keyframes border-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* -------------------------------------------------
+   12. UTILITY CLASSES
+   ------------------------------------------------- */
+.cyber-border {
+  border: 1px solid var(--cp-border);
+}
+
+.cyber-border-accent {
+  border: 1px solid var(--cp-accent);
+}
+
+.cyber-border-glow {
+  border: 1px solid var(--cp-accent);
+  box-shadow: var(--cyber-glow-sm);
+}
+
+.cyber-bg-card {
+  background: var(--cp-card);
+}
+
+.cyber-bg-muted {
+  background: var(--cp-muted);
+}
+
+.cyber-text-accent {
+  color: var(--cp-accent);
+}
+
+.cyber-text-secondary {
+  color: var(--cp-accent-secondary);
+}
+
+.cyber-text-tertiary {
+  color: var(--cp-accent-tertiary);
+}
+
+.cyber-text-muted {
+  color: var(--cp-muted-foreground);
+}
+
+.cyber-mono {
+  font-family: var(--cp-font-body);
+}
+
+.cyber-uppercase {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* Terminal cursor */
+.cyber-cursor::after {
+  content: "_";
+  animation: blink 1s step-end infinite;
+  color: var(--cp-accent);
+}
+
+/* -------------------------------------------------
+   13. ACCESSIBILITY
+   ------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .cyber-glitch,
+  .cyber-glitch::before,
+  .cyber-glitch::after {
+    animation: none;
+  }
+  
+  .cyber-scanlines-animated::after {
+    animation: none;
+  }
+  
+  .cyber-rgb {
+    animation: none;
+  }
+  
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus visible for accessibility */
+.cyber-focus:focus-visible {
+  outline: 2px solid var(--cp-accent);
+  outline-offset: 2px;
+  box-shadow: var(--cyber-glow-sm);
+}
+
+/* -------------------------------------------------
+   14. HTMX INTEGRATION
+   ------------------------------------------------- */
+.htmx-request .cyber-indicator {
+  opacity: 1;
+}
+
+.htmx-request .cyber-indicator-hidden {
+  opacity: 0;
+}
+
+.cyber-indicator {
+  transition: opacity 200ms ease-in;
+}
+
+.cyber-indicator-hidden {
+  opacity: 0;
+  transition: opacity 200ms ease-in;
+}
+
+/* Loading spinner */
+.cyber-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--cp-border);
+  border-top-color: var(--cp-accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* -------------------------------------------------
+   15. RESPONSIVE ADAPTATIONS
+   ------------------------------------------------- */
+@media (max-width: 768px) {
+  .cyber-h1 {
+    font-size: 2rem;
+  }
+  
+  .cyber-h2 {
+    font-size: 1.5rem;
+  }
+  
+  .cyber-glow-lg {
+    box-shadow: 
+      0 0 5px var(--cp-accent),
+      0 0 10px rgba(0, 255, 136, 0.3);
+  }
+}
