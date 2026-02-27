@@ -1,6 +1,6 @@
 # Home Server
 
-A modular FastAPI home server with MongoDB backend, OAuth authentication (GitHub, Google, Microsoft), header-based authentication (Databricks, Azure App Service), and HTMX + Tailwind CSS frontend.
+A modular FastAPI home server with MongoDB backend, OAuth authentication (GitHub, Google, Microsoft), header-based authentication (Databricks, Azure App Service), and HTMX + Tailwind CSS frontend with a Cyberpunk design system.
 
 Please check and maintain docs/ for app specified architecture and design decision.
 
@@ -12,7 +12,8 @@ Please check and maintain docs/ for app specified architecture and design decisi
 - **Header-Based Authentication**: Databricks App Service and Azure App Service support
 - **HTMX + Tailwind CSS**: Server-rendered UI with interactive components
 - **Auto-Discovery**: Features automatically discovered and registered
-- **Landing Page**: Beautiful public landing page with login modal
+- **Cyberpunk UI**: Terminal-inspired design system with neon glow effects
+- **User Roles**: Role-based access control (admin/user) with permission system
 
 ## Project Structure
 
@@ -25,7 +26,7 @@ Please check and maintain docs/ for app specified architecture and design decisi
 │   │   ├── google.py      # Google OAuth
 │   │   ├── microsoft.py   # Microsoft OAuth
 │   │   ├── router.py      # Auth routes
-│   │   ├── middleware.py  # Auth middleware (get_current_user)
+│   │   ├── middleware.py  # Auth middleware (get_current_user, require_admin)
 │   │   ├── header_auth.py # Header-based auth (Databricks, Azure)
 │   │   ├── user_service.py # Shared user creation service
 │   │   └── schemas.py     # Auth Pydantic schemas
@@ -37,29 +38,32 @@ Please check and maintain docs/ for app specified architecture and design decisi
 │   │   └── collections.py # MongoDB collection helpers
 │   ├── models/            # MongoDB document schemas
 │   │   ├── base.py       # Base model with common fields
-│   │   ├── user.py       # User model
+│   │   ├── user.py       # User model (with UserRole enum)
 │   │   └── feature.py    # Feature model
-│   ├── schemas/           # Pydantic schemas
-│   │   └── base.py       # Base schemas
 │   ├── features/          # Modular features
-│   │   └── todos/       # Todo List feature
+│   │   └── todos/        # Todo List feature
 │   │       ├── model.py  # MongoDB model
 │   │       ├── schema.py # Pydantic schemas
 │   │       └── router.py # Routes (with feature_info)
-│   └── templates/         # Jinja2 templates
-│       ├── base.html     # Base template with HTMX + Tailwind
-│       ├── landing.html  # Public landing page (no auth required)
-│       ├── auth/
-│       │   └── login.html # Login page (fallback)
-│       ├── dashboard/
-│       │   └── dashboard.html
-│       └── components/
-│           └── sidebar.html
+│   ├── templates/         # Jinja2 templates
+│   │   ├── base.html     # Base template with HTMX + Tailwind + Cyberpunk CSS
+│   │   ├── landing.html  # Public landing page (no auth required)
+│   │   ├── auth/
+│   │   │   └── login.html
+│   │   ├── dashboard/
+│   │   │   └── dashboard.html
+│   │   ├── todos/
+│   │   │   └── todos.html
+│   │   └── components/
+│   │       └── sidebar.html
+│   └── static/
+│       └── cyberpunk.css  # Cyberpunk design system styles
 ├── tests/                 # Test files
 │   └── test_header_auth.py
 ├── docs/                  # Documentation
 │   ├── README.md          # Documentation index
 │   ├── HEADER_AUTH.md     # Header authentication guide
+│   ├── USER_ROLES.md     # User roles and permissions
 │   └── MONGODB_PATTERNS.md # MongoDB patterns guide
 ├── main.py                # Application entry point
 ├── requirements.txt       # Python dependencies
@@ -105,6 +109,9 @@ DATABRICKS_HEADER_AUTH=true
 AZURE_APP_SERVICE_AUTH=true
 TRUSTED_HEADER_PROXIES=127.0.0.1,::1
 
+# Admin emails (comma-separated)
+ADMIN_EMAILS=admin@example.com
+
 FRONTEND_URL=http://localhost:8001
 ```
 
@@ -126,8 +133,8 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8001
 ### 5. Access the App
 
 - **Root URL** (`http://localhost:8001`): Public landing page (no auth required)
-- **Dashboard** (when authenticated): Shows your features
-- **Login**: Click "Sign In" on landing page to open login modal
+- **Dashboard** (when authenticated): Shows your features and quick stats
+- **Todos** (`/todos`): Manage todo items with card-based layout
 
 ## Authentication
 
@@ -198,11 +205,25 @@ Or via environment variable (for development):
 ADMIN_EMAILS=admin@example.com,another-admin@example.com
 ```
 
-Then update `user_service.py` to check this environment variable.
+## UI Design System
 
-## Creating a New Feature
-- **Databricks**: `X-Databricks-User-Email` header
-- **Azure App Service**: `X-MS-CLIENT-PRINCIPAL` header
+The application uses a **Cyberpunk/Terminal** design system with:
+
+- **Neon colors**: Green (#00ff88), Magenta (#ff00ff), Cyan (#00d4ff)
+- **Scanline overlay**: CRT-style effect on all pages
+- **Grid background**: Subtle grid pattern
+- **Glitch effects**: Animated text effects on headings
+- **Terminal fonts**: JetBrains Mono, Orbitron
+- **Chamfered cards**: Angled corners on cards and buttons
+
+### CSS Classes
+
+- `.btn` - Base button styles
+- `.btn-primary` - Neon green bordered button
+- `.card` - Cyberpunk card with chamfered edges
+- `.input-field` - Styled form inputs
+- `.neon-glow` - Glow effect
+- `.glitch-text` - Glitch animation
 
 ## Creating a New Feature
 
@@ -277,15 +298,15 @@ async def protected_route(user: dict = Depends(get_current_user)):
     return {"user": user}
 ```
 
-For routes that require authentication, you can create a custom dependency:
+For admin-only routes, use `require_admin`:
 
 ```python
-async def require_user(request: Request) -> dict:
-    from app.auth.middleware import get_current_user
-    user = await get_current_user(request)
-    if not user:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    return user
+from app.auth.middleware import require_admin
+
+@router.post("/create")
+async def create_item(user: dict = Depends(require_admin)):
+    # Admin only
+    return {"message": "Created!"}
 ```
 
 ## Database Collections
@@ -307,7 +328,7 @@ await todos_collection.collection.insert_one({"title": "My todo"})
 - **Backend**: FastAPI, Python 3.11+
 - **Database**: MongoDB with motor (async driver)
 - **Authentication**: JWT + OAuth2 + Header-based auth
-- **Frontend**: HTMX + Tailwind CSS
+- **Frontend**: HTMX + Tailwind CSS + Custom Cyberpunk CSS
 - **Templating**: Jinja2
 
 ## File Overview
@@ -316,12 +337,13 @@ await todos_collection.collection.insert_one({"title": "My todo"})
 |------|---------|
 | `main.py` | App entry point, root route |
 | `app/auth/router.py` | OAuth callbacks, auth endpoints |
-| `app/auth/middleware.py` | `get_current_user` dependency |
+| `app/auth/middleware.py` | `get_current_user`, `require_admin` dependencies |
 | `app/auth/header_auth.py` | Header-based auth providers |
 | `app/auth/user_service.py` | Shared user creation service |
 | `app/core/collections.py` | MongoDB collection helpers |
 | `app/core/features.py` | Auto-discovery of feature routers |
+| `app/static/cyberpunk.css` | Cyberpunk design system styles |
 | `app/templates/landing.html` | Public landing page (no auth required) |
 | `app/templates/dashboard/dashboard.html` | Authenticated dashboard |
 | `app/templates/todos/todos.html` | Todo list page with sidebar |
-
+| `docs/USER_ROLES.md` | Detailed user roles documentation |
