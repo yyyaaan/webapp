@@ -8,41 +8,57 @@
 
     <main class="flex-1 ml-64 p-8">
         <!-- Header -->
-        <div class="flex justify-between items-start mb-8 pb-6 border-b border-[#2a2a3a]">
-            <div>
-                <div class="flex items-center gap-2 mb-2">
-                    <span class="text-[#00ff88]">root@home-server:~#</span>
-                    <span class="text-[#6b7280]">./todos.sh</span>
+        <header class="mb-8 pb-6 border-b border-[#2a2a3a]">
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-[#00ff88]">root@home-server:~#</span>
+                        <span class="text-[#6b7280]">./todos.sh</span>
+                    </div>
+                    <h1 class="text-3xl font-bold text-[#e0e0e0] tracking-wide">
+                        <span class="text-[#00ff88]">//</span> TODO LIST
+                    </h1>
+                    <p class="text-[#6b7280] mt-2 font-mono">
+                        Manage your tasks with customizable cards
+                        <span class="cursor-blink"></span>
+                    </p>
                 </div>
-                <h1 class="text-3xl font-bold text-[#e0e0e0] tracking-wide">
-                    <span class="text-[#00ff88]">//</span> TODO LIST
-                </h1>
-                <p class="text-[#6b7280] mt-2 font-mono">
-                    Manage your tasks with customizable cards
-                    <span class="cursor-blink"></span>
-                </p>
+                
+                {% if is_admin %}
+                <button 
+                    onclick="document.getElementById('create-modal').classList.remove('hidden')"
+                    class="btn btn-primary">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    NEW TASK
+                </button>
+                {% else %}
+                <div class="text-right">
+                    <span class="text-xs text-[#6b7280] font-mono border border-[#2a2a3a] px-3 py-2">
+                        <span class="text-[#ff00ff]">!</span> READ-ONLY MODE
+                    </span>
+                </div>
+                {% endif %}
             </div>
-            <button 
-                onclick="document.getElementById('create-modal').classList.remove('hidden')"
-                class="btn btn-primary">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                </svg>
-                NEW TASK
-            </button>
-        </div>
+        </header>
 
-        <!-- Todo Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="todo-grid">
-            {% for todo in todos %}
-            <div class="col-span-{{ todo.column_width }} todo-card" data-id="{{ todo['_id'] }}">
-                <div class="card h-full flex flex-col {% if todo.completed %}opacity-60{% endif %}">
-                    <!-- Card Header -->
-                    <div class="flex justify-between items-start mb-3">
-                        <h3 class="font-semibold text-lg text-[#e0e0e0] {% if todo.completed %}line-through text-[#6b7280]{% endif %}">
-                            {{ todo.title }}
-                        </h3>
-                        <div class="flex gap-1">
+        <!-- Content Area -->
+        <div id="content" class="space-y-6">
+            <!-- Todo Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-12 gap-4" id="todo-grid">
+                {% for todo in todos %}
+                <div class="col-span-{{ todo.column_width }} todo-card" data-id="{{ todo['_id'] }}">
+                    <div class="card h-full flex flex-col {% if todo.completed %}opacity-60{% endif %}">
+                        <!-- Title -->
+                        <div class="mb-3">
+                            <h3 class="font-semibold text-lg text-[#e0e0e0] {% if todo.completed %}line-through text-[#6b7280]{% endif %}">
+                                {{ todo.title }}
+                            </h3>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="flex gap-1 mb-3">
                             <!-- Edit button -->
                             <button 
                                 onclick="editTodo('{{ todo['_id'] }}', '{{ todo.title }}', '{{ todo.description or '' }}', '{{ todo.content or '' }}', {{ todo.column_width }})"
@@ -64,6 +80,7 @@
                                 {% else %}
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
                                 {% endif %}
                             </button>
                             <!-- Delete button - HTMX -->
@@ -78,45 +95,40 @@
                                 </svg>
                             </button>
                         </div>
-                    </div>
-                    
-                    <!-- Card Body -->
-                    {% if todo.description %}
-                    <p class="text-[#6b7280] text-sm mb-3">{{ todo.description }}</p>
-                    {% endif %}
-                    
-                    {% if todo.content %}
-                    <div class="flex-1 bg-[#1c1c2e] p-3 mb-3 border border-[#2a2a3a]">
-                        <p class="text-[#e0e0e0] text-sm whitespace-pre-wrap">{{ todo.content }}</p>
-                    </div>
-                    {% endif %}
-                    
-                    <!-- Card Footer -->
-                    <div class="flex justify-between items-center mt-auto pt-3 border-t border-[#2a2a3a]">
-                        <span class="text-xs text-[#6b7280] font-mono">
-                            COL: {{ todo.column_width }}/12
-                        </span>
-                        <span class="text-xs font-mono {% if todo.completed %}text-[#00ff88]{% else %}text-[#ff00ff]{% endif %}">
-                            {% if todo.completed %}[✓] COMPLETE{% else %}[ ] PENDING{% endif %}
-                        </span>
+                        
+                        <!-- Card Body -->
+                        {% if todo.description %}
+                        <p class="text-[#6b7280] text-sm mb-3">{{ todo.description }}</p>
+                        {% endif %}
+                        
+                        {% if todo.content %}
+                        <div class="flex-1 bg-[#1c1c2e] p-3 mb-3 border border-[#2a2a3a]">
+                            <p class="text-[#e0e0e0] text-sm whitespace-pre-wrap">{{ todo.content }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Card Footer -->
+                        <div class="flex justify-between items-center mt-auto pt-3 border-t border-[#2a2a3a]">
+                            <span class="text-xs text-[#6b7280] font-mono">
+                                COL: {{ todo.column_width }}/12
+                            </span>
+                            <span class="text-xs font-mono {% if todo.completed %}text-[#00ff88]{% else %}text-[#ff00ff]{% endif %}">
+                                {% if todo.completed %}[✓] COMPLETE{% else %}[ ] PENDING{% endif %}
+                            </span>
+                        </div>
                     </div>
                 </div>
-            </div>
-            {% else %}
-            <div class="col-span-12 text-center py-12 border border-[#2a2a3a]">
-                <div class="w-16 h-16 mx-auto mb-4 border-2 border-[#2a2a3a] flex items-center justify-center">
-                    <svg class="w-8 h-8 text-[#6b7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                    </svg>
+                {% else %}
+                <div class="col-span-full text-center py-12 border border-[#2a2a3a]">
+                    <div class="w-16 h-16 mx-auto mb-4 border-2 border-[#2a2a3a] flex items-center justify-center">
+                        <svg class="w-8 h-8 text-[#6b7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                    </div>
+                    <p class="text-[#6b7280]">No tasks found.</p>
                 </div>
-                <p class="text-[#6b7280]">No tasks found. Initialize new task?</p>
-                <button 
-                    onclick="document.getElementById('create-modal').classList.remove('hidden')"
-                    class="btn btn-primary mt-4">
-                    <span class="mr-2">></span> CREATE TASK
-                </button>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
     </main>
 </div>
@@ -142,7 +154,7 @@
             </button>
         </div>
 
-        <!-- HTMX Form - unchanged functionality -->
+        <!-- HTMX Form -->
         <form id="todo-form" hx-post="/todos/create" hx-target="#todo-grid" hx-swap="beforeend">
             <input type="hidden" id="edit-id" name="todo_id" value="">
             

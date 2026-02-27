@@ -39,6 +39,68 @@
 
         <!-- Content Area -->
         <div id="content" class="space-y-6">
+            <!-- Quick Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="card">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 border border-[#00ff88] flex items-center justify-center">
+                            <span class="text-[#00ff88] text-xl">#</span>
+                        </div>
+                        <div>
+                            <p class="text-xs text-[#6b7280] font-mono">FEATURES</p>
+                            <p class="text-2xl font-bold text-[#e0e0e0]">{{ features|length }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 border border-[#ff00ff] flex items-center justify-center">
+                            <span class="text-[#ff00ff] text-xl">@</span>
+                        </div>
+                        <div>
+                            <p class="text-xs text-[#6b7280] font-mono">USER ROLE</p>
+                            <p class="text-lg font-bold text-[#e0e0e0]">{{ user.role|upper }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 border border-[#00d4ff] flex items-center justify-center">
+                            <span class="text-[#00d4ff] text-xl">*</span>
+                        </div>
+                        <div>
+                            <p class="text-xs text-[#6b7280] font-mono">STATUS</p>
+                            <p class="text-lg font-bold text-[#00ff88]">ONLINE</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feature Links -->
+            <div>
+                <h2 class="text-xl font-bold text-[#e0e0e0] mb-4">
+                    <span class="text-[#00ff88]">>></span> AVAILABLE MODULES
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {% for feature in features %}
+                    <a href="{{ feature.url }}" class="card hover:border-[#00ff88] group">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-semibold text-lg text-[#e0e0e0] group-hover:text-[#00ff88] transition-colors">
+                                {{ feature.name }}
+                            </h3>
+                            <span class="text-[#00ff88] group-hover:translate-x-1 transition-transform">>></span>
+                        </div>
+                        <p class="text-[#6b7280] text-sm mt-2">{{ feature.description or 'No description' }}</p>
+                    </a>
+                    {% else %}
+                    <div class="col-span-full text-center py-8 border border-[#2a2a3a]">
+                        <p class="text-[#6b7280]">No features discovered.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div id="content" class="space-y-6">
             {% block page_content %}{% endblock %}
         </div>
     </main>

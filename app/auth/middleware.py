@@ -1,6 +1,6 @@
 from fastapi import Request, HTTPException
 from fastapi.responses import RedirectResponse
-from typing import Optional, Tuple
+from typing import Optional
 from app.core.security import decode_access_token
 from app.auth.header_auth import header_auth_manager
 
@@ -10,6 +10,8 @@ async def get_current_user(request: Request) -> Optional[dict]:
     Get current user from multiple authentication sources:
     1. JWT token from cookies (OAuth flow)
     2. Header-based authentication (Databricks/Azure App Service)
+    
+    Returns user dict with id, email, name, role, and auth_method.
     """
     # First try JWT token from cookies (OAuth flow)
     token = request.cookies.get("access_token")
@@ -20,6 +22,7 @@ async def get_current_user(request: Request) -> Optional[dict]:
                 "id": payload.get("sub"),
                 "email": payload.get("email"),
                 "name": payload.get("name"),
+                "role": payload.get("role", "user"),  # Include role
                 "auth_method": "oauth"
             }
     
@@ -32,6 +35,7 @@ async def get_current_user(request: Request) -> Optional[dict]:
                 "id": payload.get("sub"),
                 "email": payload.get("email"),
                 "name": payload.get("name"),
+                "role": payload.get("role", "user"),  # Include role
                 "auth_method": "header"
             }
     
@@ -46,6 +50,19 @@ async def require_auth(request: Request) -> dict:
     user = await get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
+    return user
+
+
+async def require_admin(request: Request) -> dict:
+    """
+    Require admin role and return user info.
+    Raises HTTPException if not authenticated or not admin.
+    """
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
     return user
 
 

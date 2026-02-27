@@ -168,6 +168,42 @@ The server will automatically extract user info from:
 - **Databricks**: `X-Databricks-User-Email` header
 - **Azure App Service**: `X-MS-CLIENT-PRINCIPAL` header
 
+### User Roles
+
+The application supports two user roles:
+
+| Role | Description | Permissions |
+|------|-------------|-------------|
+| `admin` | Administrator | Can create, edit, delete todo items |
+| `user` | Regular User | Can view todo items and toggle completion status |
+
+By default, all new SSO users are assigned the `user` role.
+
+#### Granting Admin Access
+
+To grant admin access to a user, manually update their role in MongoDB:
+
+```javascript
+// In MongoDB shell
+db.users.updateOne(
+    { email: "your-admin-email@example.com" },
+    { $set: { role: "admin" } }
+)
+```
+
+Or via environment variable (for development):
+
+```env
+# Comma-separated list of admin emails
+ADMIN_EMAILS=admin@example.com,another-admin@example.com
+```
+
+Then update `user_service.py` to check this environment variable.
+
+## Creating a New Feature
+- **Databricks**: `X-Databricks-User-Email` header
+- **Azure App Service**: `X-MS-CLIENT-PRINCIPAL` header
+
 ## Creating a New Feature
 
 1. Create a feature directory under `app/features/`:

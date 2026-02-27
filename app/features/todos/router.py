@@ -6,7 +6,7 @@ from bson import ObjectId
 
 from app.core.collections import todos_collection
 from app.features.todos.model import TodoItem
-from app.auth.middleware import get_current_user
+from app.auth.middleware import get_current_user, require_admin
 
 router = APIRouter(prefix="/todos", tags=["todos"])
 templates = Jinja2Templates(directory="app/templates")
@@ -29,14 +29,24 @@ async def require_user(request: Request) -> dict:
 @router.get("/", response_class=HTMLResponse)
 async def list_todos(request: Request, user: dict = Depends(require_user)):
     """Show the main todos page with all todo cards"""
+    from app.core.features import discover_features
+    
+    features = discover_features()
     todos = await todos_collection.collection.find({}).sort("order", 1).to_list(length=100)
 
     return templates.TemplateResponse(
         "todos/todos.html",
         {
             "request": request,
-            "user": {"name": user.get("name", "User"), "email": user.get("email", ""), "avatar_url": None},
+            "user": {
+                "name": user.get("name", "User"), 
+                "email": user.get("email", ""), 
+                "avatar_url": None,
+                "role": user.get("role", "user"),
+            },
+            "features": [{"name": f.name, "url": f.url} for f in features],
             "todos": todos,
+            "is_admin": user.get("role") == "admin",
         },
     )
 
@@ -48,9 +58,9 @@ async def create_todo(
     description: str = Form(default=""),
     content: str = Form(default=""),
     column_width: int = Form(default=12),
-    user: dict = Depends(require_user),
+    user: dict = Depends(require_admin),  # Admin only
 ):
-    """Create a new todo card"""
+    """Create a new todo card - Admin only"""
     # Clamp column width to 1-12
     column_width = max(1, min(12, column_width))
     
@@ -83,9 +93,9 @@ async def edit_todo(
     description: str = Form(default=""),
     content: str = Form(default=""),
     column_width: int = Form(default=12),
-    user: dict = Depends(require_user),
+    user: dict = Depends(require_admin),  # Admin only
 ):
-    """Edit an existing todo"""
+    """Edit an existing todo - Admin only"""
     column_width = max(1, min(12, column_width))
     
     await todos_collection.collection.update_one(
@@ -109,9 +119,9 @@ async def edit_todo(
 async def delete_todo(
     request: Request,
     todo_id: str,
-    user: dict = Depends(require_user),
+    user: dict = Depends(require_admin),  # Admin only
 ):
-    """Delete a todo"""
+    """Delete a todo - Admin only"""
     await todos_collection.collection.delete_one({"_id": ObjectId(todo_id)})
     return HTMLResponse("")
 
@@ -120,9 +130,9 @@ async def delete_todo(
 async def toggle_todo(
     request: Request,
     todo_id: str,
-    user: dict = Depends(require_user),
+    user: dict = Depends(require_user),  # Any authenticated user can toggle
 ):
-    """Toggle todo completion status"""
+    """Toggle todo completion status - Any authenticated user"""
     todo = await todos_collection.collection.find_one({"_id": ObjectId(todo_id)})
     if not todo:
         return HTMLResponse("Todo not found", status_code=404)
@@ -164,22 +174,22 @@ def render_todo_card(todo: dict) -> HTMLResponse:
     
     html = f'''
     <div class="col-span-{column_width} todo-card" data-id="{todo_id}">
-        <div class="card h-full flex flex-col material-shadow {opacity_class}">
+        <div class="card h-full flex flex-col {opacity_class}">
             <div class="flex justify-between items-start mb-3">
-                <h3 class="font-semibold text-lg text-gray-800 {line_through}">
+                <h3 class="font-semibold text-lg text-[#e0e0e0] {line_through}">
                     {title}
                 </h3>
                 <div class="flex gap-1">
                     <button 
                         onclick="editTodo('{todo_id}', '{title}', '{description}', '{content}', {column_width})"
-                        class="text-gray-400 hover:text-indigo-600 p-1">
+                        class="text-[#6b7280] hover:text-[#00d4ff] p-1 transition-colors">
                         {EDIT_ICON}
                     </button>
                     <button 
                         hx-post="/todos/{todo_id}/toggle"
                         hx-target="closest .todo-card"
                         hx-swap="outerHTML"
-                        class="text-gray-400 hover:text-green-600 p-1">
+                        class="text-[#6b7280] hover:text-[#00ff88] p-1 transition-colors">
                         {toggle_icon}
                     </button>
                     <button 
@@ -187,7 +197,7 @@ def render_todo_card(todo: dict) -> HTMLResponse:
                         hx-target="closest .todo-card"
                         hx-swap="outerHTML"
                         hx-confirm="Are you sure you want to delete this todo?"
-                        class="text-gray-400 hover:text-red-600 p-1">
+                        class="text-[#6b7280] hover:text-[#ff3366] p-1 transition-colors">
                         {DELETE_ICON}
                     </button>
                 </div>
@@ -195,20 +205,22 @@ def render_todo_card(todo: dict) -> HTMLResponse:
     '''
     
     if description:
-        html += f'<p class="text-gray-600 text-sm mb-3">{description}</p>'
+        html += f'<p class="text-[#6b7280] text-sm mb-3">{description}</p>'
     
     if content:
         html += f'''
-        <div class="flex-1 bg-gray-50 rounded p-3 mb-3">
-            <p class="text-gray-700 text-sm whitespace-pre-wrap">{content}</p>
+        <div class="flex-1 bg-[#1c1c2e] p-3 mb-3 border border-[#2a2a3a]">
+            <p class="text-[#e0e0e0] text-sm whitespace-pre-wrap">{content}</p>
         </div>
         '''
     
-    status_text = "✓ Completed" if completed else "○ Pending"
+    status_text = "[✓] COMPLETE" if completed else "[ ] PENDING"
+    status_class = "text-[#00ff88]" if completed else "text-[#ff00ff]"
+    
     html += f'''
-            <div class="flex justify-between items-center mt-auto pt-3 border-t border-gray-100">
-                <span class="text-xs text-gray-400">Col: {column_width}/12</span>
-                <span class="text-xs text-gray-400">{status_text}</span>
+            <div class="flex justify-between items-center mt-auto pt-3 border-t border-[#2a2a3a]">
+                <span class="text-xs text-[#6b7280] font-mono">COL: {column_width}/12</span>
+                <span class="text-xs font-mono {status_class}">{status_text}</span>
             </div>
         </div>
     </div>

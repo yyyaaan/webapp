@@ -49,7 +49,14 @@
             {% endif %}
             <div class="flex-1 min-w-0">
                 <p class="text-sm text-[#e0e0e0] truncate">{{ user.name }}</p>
-                <p class="text-xs text-[#6b7280] truncate">{{ user.email }}</p>
+                <p class="text-xs text-[#6b7280] truncate">
+                    {{ user.email }}
+                    {% if user.role == 'admin' %}
+                    <span class="text-[#00ff88] ml-1">[#{{ user.role }}]</span>
+                    {% else %}
+                    <span class="text-[#6b7280] ml-1">[{{ user.role }}]</span>
+                    {% endif %}
+                </p>
             </div>
         </div>
         
