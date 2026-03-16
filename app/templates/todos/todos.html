@@ -26,7 +26,7 @@
                 
                 {% if is_admin %}
                 <button 
-                    onclick="document.getElementById('create-modal').classList.remove('hidden');"
+                    onclick="resetForm(); document.getElementById('create-modal').classList.remove('hidden');"
                     class="btn btn-primary">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -62,7 +62,7 @@
                             {% if is_admin %}
                             <!-- Edit button -->
                             <button 
-                                onclick="editTodo('{{ todo['_id'] }}', '{{ todo.title }}', '{{ todo.description or '' }}', '{{ todo.content or '' }}', {{ todo.column_width }})"
+                                onclick='editTodo({{ todo['_id']|tojson }}, {{ todo.title|tojson }}, {{ (todo.description or '')|tojson }}, {{ (todo.content or '')|tojson }}, {{ todo.column_width }})'
                                 class="text-[#6b7280] hover:text-[#00d4ff] p-1 transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -103,9 +103,9 @@
                         <p class="text-[#6b7280] text-sm mb-3">{{ todo.description }}</p>
                         {% endif %}
                         
-                        {% if todo.content %}
+                        {% if todo.html %}
                         <div class="flex-1 bg-[#1c1c2e] p-3 mb-3 border border-[#2a2a3a]">
-                            <p class="text-[#e0e0e0] text-sm whitespace-pre-wrap">{{ todo.content }}</p>
+                            <p class="text-[#e0e0e0] text-sm whitespace-pre-wrap">{{ todo.html|safe }}</p>
                         </div>
                         {% endif %}
                         
@@ -157,7 +157,7 @@
         </div>
 
         <!-- HTMX Form -->
-        <form id="todo-form" hx-post="/todos/create" hx-target="#todo-grid" hx-swap="beforeend">
+        <form id="todo-form" hx-post="/todos/save" hx-target="#todo-grid" hx-swap="beforeend">
             <input type="hidden" id="edit-id" name="todo_id" value="">
             
             <div class="space-y-4">
@@ -243,6 +243,9 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
 <script>
 // Modal and form handling - HTMX integration preserved
 const modal = document.getElementById('create-modal');
@@ -255,23 +258,29 @@ widthSlider.addEventListener('input', (e) => {
     widthDisplay.textContent = e.target.value;
 });
 
-function closeModal() {
+window.closeModal = function() {
     modal.classList.add('hidden'); // Hide modal
     resetForm();
-}
+};
 
-function resetForm() {
+window.resetForm = function() {
     form.reset();
     document.getElementById('edit-id').value = '';
     document.getElementById('modal-title').textContent = 'NEW TASK';
     document.getElementById('submit-text').textContent = 'CREATE';
-    form.setAttribute('hx-post', '/todos/create');
+    form.setAttribute('hx-post', '/todos/save');
     form.setAttribute('hx-target', '#todo-grid');
     form.setAttribute('hx-swap', 'beforeend'); // Default for create
     widthDisplay.textContent = '12';
-}
+};
 
-function editTodo(id, title, description, content, columnWidth) {
+window.editTodo = function(id, title, description, content, columnWidth) {
+    // Validate inputs
+    if (!id || id === 'undefined' || id === 'null') {
+        console.error('editTodo called with invalid id:', id);
+        return;
+    }
+    
     document.getElementById('modal-title').textContent = 'EDIT TASK';
     document.getElementById('submit-text').textContent = 'SAVE';
     document.getElementById('edit-id').value = id;
@@ -281,10 +290,17 @@ function editTodo(id, title, description, content, columnWidth) {
     document.getElementById('todo-column-width').value = columnWidth;
     widthDisplay.textContent = columnWidth;
     
-    // Set form action for edit - target the specific card
-    form.setAttribute('hx-post', `/todos/${id}/edit`);
+    // For edit: target the specific card and replace it
     form.setAttribute('hx-target', `.todo-card[data-id="${id}"]`);
-    form.setAttribute('hx-swap', 'outerHTML'); // Crucial for updating existing card
+    form.setAttribute('hx-swap', 'outerHTML'); // Replace the existing card
+    
+    // Debug logging
+    console.log('editTodo called for update:', { 
+        id, 
+        title, 
+        hxTarget: form.getAttribute('hx-target'),
+        hxSwap: form.getAttribute('hx-swap')
+    });
     
     modal.classList.remove('hidden'); // Show modal
 }
@@ -297,8 +313,23 @@ modal.addEventListener('click', (e) => {
 });
 
 // Handle form submission - HTMX event preserved
-form.addEventListener('htmx:afterRequest', () => {
-    closeModal();
+form.addEventListener('htmx:afterRequest', (event) => {
+    // Only close modal on successful requests (2xx status)
+    if (event.detail.successful) {
+        closeModal();
+    }
+    // On error, keep modal open so user can fix and retry
 });
 
+// Add debug logging for HTMX requests
+form.addEventListener('htmx:beforeRequest', (event) => {
+    console.log('HTMX beforeRequest:', {
+        method: event.detail.requestConfig.verb,
+        url: event.detail.requestConfig.path,
+        hxPost: form.getAttribute('hx-post'),
+        hxTarget: form.getAttribute('hx-target'),
+        hxSwap: form.getAttribute('hx-swap')
+    });
+});
+</script>
 {% endblock %}
