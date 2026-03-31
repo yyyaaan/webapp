@@ -1,0 +1,32 @@
+{
+  "name": "yan-fi-devcontainer",
+  "build": { "dockerfile": "Dockerfile" },
+  
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "tamasfe.even-better-toml",
+        "batisteo.vscode-django" // Excellent for HTMX/HTML template highlighting
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python"
+      }
+    }
+  },
+
+  "mounts": [
+    "source=uv-shared-cache,target=/root/.cache/uv,type=volume",
+    "source=${localWorkspaceFolderBasename}-venv,target=${containerWorkspaceFolder}/.venv,type=volume",
+    "source=${localEnv:HOME}/.config/opencode,target=/root/.config/opencode,type=bind",
+    "source=opencode-global-cache,target=/root/.cache/opencode,type=volume"
+  ],
+
+  "containerEnv": {
+    "UV_LINK_MODE": "hardlink",
+    "OLLAMA_HOST": "http://host.orb.internal:11434"
+  },
+  "forwardPorts": [8000],
+  "postCreateCommand": "sudo chown -R $(whoami) .venv && uv sync"
+}
