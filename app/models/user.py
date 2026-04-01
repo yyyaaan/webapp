@@ -1,4 +1,4 @@
-from pydantic import EmailStr, Field
+from pydantic import EmailStr
 from enum import Enum
 from app.models.base import MongoBaseModel
 

@@ -1,14 +1,15 @@
-from bson import ObjectId
 from datetime import datetime, timezone
 from json import dumps
-from fastapi import APIRouter, Request, Form, Depends, HTTPException
+
+from bson import ObjectId
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from markdown import markdown
 
+from app.auth.middleware import get_current_user, require_admin
 from app.core.collections import todos_collection
 from app.features.todos.model import TodoItem
-from app.auth.middleware import get_current_user, require_admin
 
 router = APIRouter(prefix="/todos", tags=["todos"])
 templates = Jinja2Templates(directory="app/templates")
@@ -32,15 +33,15 @@ def convert_mongo_doc(doc: dict) -> dict:
     """Convert MongoDB document for template rendering (ObjectId -> string, content markdown)"""
     if not doc:
         return doc
-    
-    doc_dict = dict(doc)
-    if '_id' in doc_dict and doc_dict['_id']:
-        doc_dict['_id'] = str(doc_dict['_id'])
 
-    if 'content' in doc_dict and doc_dict['content']:
-        doc_dict['html'] = markdown(doc_dict['content'])
+    doc_dict = dict(doc)
+    if "_id" in doc_dict and doc_dict["_id"]:
+        doc_dict["_id"] = str(doc_dict["_id"])
+
+    if "content" in doc_dict and doc_dict["content"]:
+        doc_dict["html"] = markdown(doc_dict["content"])
     else:
-        doc_dict['html'] = ""
+        doc_dict["html"] = ""
 
     return doc_dict
 
@@ -49,20 +50,22 @@ def convert_mongo_doc(doc: dict) -> dict:
 async def list_todos(request: Request, user: dict = Depends(require_user)):
     """Show the main todos page with all todo cards"""
     from app.core.features import discover_features
-    
+
     features = discover_features()
-    todos_cursor = await todos_collection.collection.find({}).sort("order", 1).to_list(length=100)
-    
+    todos_cursor = (
+        await todos_collection.collection.find({}).sort("order", 1).to_list(length=100)
+    )
+
     # Convert ObjectId to string for template rendering
     todos = [convert_mongo_doc(todo) for todo in todos_cursor]
 
     return templates.TemplateResponse(
-        "todos/todos.html",
-        {
-            "request": request,
+        request=request,
+        name="todos/todos.html",
+        context={
             "user": {
-                "name": user.get("name", "User"), 
-                "email": user.get("email", ""), 
+                "name": user.get("name", "User"),
+                "email": user.get("email", ""),
                 "avatar_url": None,
                 "role": user.get("role", "user"),
             },
@@ -86,16 +89,18 @@ async def save_todo(
     """Save a todo card (create or update) - Admin only"""
     # Clamp column width to 1-12
     column_width = max(1, min(12, column_width))
-    
+
     # Check if we're updating an existing todo
     if todo_id and todo_id.strip():
         try:
             # Try to convert to ObjectId
             object_id = ObjectId(todo_id)
-            
+
             # Check if todo exists
-            existing_todo = await todos_collection.collection.find_one({"_id": object_id})
-            
+            existing_todo = await todos_collection.collection.find_one({
+                "_id": object_id
+            })
+
             if existing_todo:
                 # Preserve existing completed status and order when updating
                 await todos_collection.collection.update_one(
@@ -108,14 +113,18 @@ async def save_todo(
                             "column_width": column_width,
                             "updated_at": datetime.now(timezone.utc),
                         }
-                    }
+                    },
                 )
-                
+
                 # Fetch updated todo
-                updated_todo = await todos_collection.collection.find_one({"_id": object_id})
+                updated_todo = await todos_collection.collection.find_one({
+                    "_id": object_id
+                })
                 if not updated_todo:
-                    raise HTTPException(status_code=404, detail="Todo not found after update")
-                
+                    raise HTTPException(
+                        status_code=404, detail="Todo not found after update"
+                    )
+
                 return render_todo_card(updated_todo)
             else:
                 # Todo ID provided but not found - fall back to create
@@ -124,7 +133,7 @@ async def save_todo(
         except Exception:
             # Invalid ObjectId format - fall back to create
             pass
-    
+
     # CREATE new todo (either no ID provided, or ID not found/invalid)
     # Get max order
     last_todo = await todos_collection.collection.find_one(sort=[("order", -1)])
@@ -138,20 +147,17 @@ async def save_todo(
         column_width=column_width,
         order=new_order,
     )
-    
+
     todo_dict = todo.model_dump(by_alias=True, exclude_none=True)
     todo_dict.pop("_id", None)
-    
+
     result = await todos_collection.collection.insert_one(todo_dict)
     new_todo = await todos_collection.collection.find_one({"_id": result.inserted_id})
 
     if not new_todo:
         raise HTTPException(status_code=500, detail="Failed to create todo")
-    
+
     return render_todo_card(new_todo)
-
-
-
 
 
 @router.delete("/{todo_id}", response_class=HTMLResponse)
@@ -175,51 +181,56 @@ async def toggle_todo(
     todo = await todos_collection.collection.find_one({"_id": ObjectId(todo_id)})
     if not todo:
         return HTMLResponse("Todo not found", status_code=404)
-    
+
     new_completed = not todo.get("completed", False)
-    
+
     await todos_collection.collection.update_one(
         {"_id": ObjectId(todo_id)},
-        {"$set": {"completed": new_completed, "updated_at": datetime.now(timezone.utc)}}
+        {
+            "$set": {
+                "completed": new_completed,
+                "updated_at": datetime.now(timezone.utc),
+            }
+        },
     )
-    
+
     todo["completed"] = new_completed
     return render_todo_card(todo)
 
 
 # SVG Icons (defined outside f-string)
-REFRESH_ICON = '''<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>'''
+REFRESH_ICON = """<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>"""
 
-CHECK_ICON = '''<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>'''
+CHECK_ICON = """<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>"""
 
-EDIT_ICON = '''<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>'''
+EDIT_ICON = """<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>"""
 
-DELETE_ICON = '''<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>'''
+DELETE_ICON = """<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>"""
 
 
 def render_todo_card(todo: dict) -> HTMLResponse:
     """Render a single todo card HTML"""
     # Convert MongoDB document for template rendering
     todo = convert_mongo_doc(todo)
-    
+
     completed = todo.get("completed", False)
     title = todo.get("title", "")
     description = todo.get("description", "")
     content = todo.get("content", "")
     column_width = todo.get("column_width", 12)
     todo_id = str(todo.get("_id", ""))
-    
+
     # Escape strings for JavaScript using JSON encoding (same as |tojson filter)
     title_escaped = dumps(title)
     description_escaped = dumps(description)
     content_escaped = dumps(content)
     todo_id_escaped = dumps(todo_id)
-    
+
     # Select icon based on completion status
     toggle_icon = REFRESH_ICON if completed else CHECK_ICON
     opacity_class = "opacity-60" if completed else ""
     line_through = "line-through" if completed else ""
-    
+
     html_output = f'''
     <div class="col-span-{column_width} todo-card" data-id="{todo_id}">
         <div class="cyber-card h-full flex flex-col {opacity_class}">
@@ -251,27 +262,27 @@ def render_todo_card(todo: dict) -> HTMLResponse:
                 </div>
             </div>
     '''
-    
+
     if description:
         html_output += f'<p class="text-[#6b7280] text-sm mb-3">{description}</p>'
-    
+
     if content:
-        html_output += f'''
+        html_output += f"""
         <div class="flex-1 bg-[#1c1c2e] p-3 mb-3 border border-[#2a2a3a]">
             <p class="text-[#e0e0e0] text-sm whitespace-pre-wrap">{markdown(content)}</p>
         </div>
-        '''
-    
+        """
+
     status_text = "[✓] COMPLETE" if completed else "[ ] PENDING"
     status_class = "text-[#00ff88]" if completed else "text-[#ff00ff]"
-    
-    html_output += f'''
+
+    html_output += f"""
             <div class="flex justify-between items-center mt-auto pt-3 border-t border-[#2a2a3a]">
                 <span class="text-xs text-[#6b7280] font-mono">COL: {column_width}/12</span>
                 <span class="text-xs font-mono {status_class}">{status_text}</span>
             </div>
         </div>
     </div>
-    '''
-    
+    """
+
     return HTMLResponse(html_output)
