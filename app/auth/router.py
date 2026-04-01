@@ -6,7 +6,7 @@ from app.auth.providers import registry, OAuthProviderConfig
 from app.auth.github import GitHubOAuthProvider
 from app.auth.google import GoogleOAuthProvider
 from app.auth.microsoft import MicrosoftOAuthProvider
-from app.auth.schemas import AuthUrlResponse, TokenResponse, UserResponse
+from app.auth.schemas import AuthUrlResponse, TokenResponse
 from app.auth.user_service import find_or_create_user, create_user_token
 from fastapi.responses import HTMLResponse
 

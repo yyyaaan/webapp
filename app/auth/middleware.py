@@ -1,5 +1,4 @@
 from fastapi import Request, HTTPException
-from fastapi.responses import RedirectResponse
 from typing import Optional
 from app.core.security import decode_access_token
 from app.auth.header_auth import header_auth_manager

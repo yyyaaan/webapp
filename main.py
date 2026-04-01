@@ -1,14 +1,16 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+
+from app.auth.middleware import get_available_auth_providers, get_current_user
+from app.auth.router import init_oauth_providers
+from app.auth.router import router as auth_router
 from app.core.config import get_settings
-from app.core.database import connect_to_mongodb, close_mongodb
-from app.auth.router import router as auth_router, init_oauth_providers
+from app.core.database import close_mongodb, connect_to_mongodb
 from app.core.features import discover_features
-from app.auth.middleware import get_current_user, get_available_auth_providers
 
 settings = get_settings()
 
@@ -37,9 +39,9 @@ async def root(request: Request):
         # Authenticated - show dashboard
         features = discover_features()
         return templates.TemplateResponse(
-            request,
-            "dashboard/dashboard.html",
-            {
+            request=request,
+            name="dashboard/dashboard.html",
+            context={
                 "user": {
                     "name": user.get("name", "User"),
                     "email": user.get("email", ""),
@@ -53,7 +55,9 @@ async def root(request: Request):
     # Not authenticated - show landing page (no login required)
     providers = get_available_auth_providers(request)
     return templates.TemplateResponse(
-        request, "landing.html", {"providers": providers, "user": None}
+        request=request,
+        name="landing.html",
+        context={"providers": providers, "user": None},
     )
 
 

@@ -6,16 +6,12 @@ Run this with: python test_header_auth.py
 
 import asyncio
 import sys
-import os
 from unittest.mock import Mock, AsyncMock
 
 # Add the workspace directory to Python path
 sys.path.insert(0, '/workspace')
 
-from fastapi import Request
-from app.auth.header_auth import DatabricksAuthProvider, AzureAppServiceProvider, HeaderAuthManager
-from app.auth.middleware import get_current_user, get_available_auth_providers
-from app.core.config import get_settings
+from app.auth.header_auth import DatabricksAuthProvider, AzureAppServiceProvider
 
 
 class MockRequest:
@@ -93,8 +89,6 @@ async def test_header_auth_manager():
     print("Testing HeaderAuthManager...")
     
     # Mock the database and security functions
-    from app.core.database import get_database
-    from app.core.security import create_access_token
     
     # Mock database
     mock_db = AsyncMock()
