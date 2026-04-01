@@ -1,33 +1,82 @@
 {
-  "name": "yan-fi-devcontainer",
-  "build": { "dockerfile": "Dockerfile" },
-  
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "ms-python.python",
-        "ms-python.vscode-pylance",
-        "tamasfe.even-better-toml",
-        "batisteo.vscode-django" // Excellent for HTMX/HTML template highlighting
-      ],
-      "settings": {
-        "python.defaultInterpreterPath": "/home/vscode/venv/bin/python"
-      }
-    }
-  },
-
-  "mounts": [
-    "source=${localWorkspaceFolderBasename}-venv,target=/home/vscode/venv,type=volume",
-    "source=${localEnv:HOME}/.config/opencode,target=/root/.config/opencode,type=bind",
-    "source=uv-shared-cache,target=/root/.cache/uv,type=volume",
-    "source=opencode-global-cache,target=/root/.cache/opencode,type=volume"
-  ],
-
-  "containerEnv": {
-    "UV_LINK_MODE": "hardlink",
-    "UV_PROJECT_ENVIRONMENT": "/home/vscode/venv",
-    "OLLAMA_HOST": "http://host.orb.internal:11434"
-  },
-  "forwardPorts": [8000],
-  "postCreateCommand": "sudo chown -R $(whoami) /home/vscode/venv && uv sync"
+    "name": "yan-fi-devcontainer",
+    "runArgs": ["--name", "yan-fi-devcontainer"],  // containerName is not supported
+    "build": { 
+        "dockerfile": "Dockerfile" 
+    },
+    "workspaceFolder": "/workspace",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+    // "features": {git, opencode, uv} set in Dockerfile,
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "python.defaultInterpreterPath": "/workspace/.venv/bin/python",
+                "python.terminal.activateEnvironment": true,
+                "python.testing.pytestEnabled": true,
+                "[python]": {
+                    "editor.formatOnSave": true,
+                    "editor.defaultFormatter": "charliermarsh.ruff",
+                    "editor.codeActionsOnSave": {
+                        "source.organizeImports": "explicit",
+                        "source.fixAll.ruff": "explicit"
+                    }
+                },
+                "ruff.format.preview": true,
+                "[markdown]": {
+                    "editor.formatOnSave": true,
+                    "editor.defaultFormatter": "charliermarsh.ruff"
+                },
+                "html.format.enable": true,
+                "files.associations": {
+                    "*.html": "jinja-html"
+                },
+                "cSpell.userWords": [
+                    "htmx",
+                    "pytest",
+                    "uvicorn",
+                    "fastapi",
+                    "pydantic",
+                    "ruff",
+                    "tailwindcss"
+                ],
+                "cSpell.enabledFileTypes": {
+                    "jinja-html": true,
+                    "python": true,
+                    "markdown": true
+                },
+                "cSpell.diagnosticLevel": "Hint" // Warning, Information
+            },
+            "extensions": [
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "charliermarsh.ruff",
+                "samuelcolvin.jinjahtml",
+                "dzhavat.css-initial-value",
+                "streetsidesoftware.code-spell-checker"
+            ]
+        }
+    },
+    "remoteUser": "vscode",
+    "updateRemoteUserUID": true, // match the vscode user in container with the host user to avoid permission issues on mounted volumes
+    "mounts": [
+        // local named volumes
+        "source=${localWorkspaceFolderBasename}-venv,target=/workspace/.venv,type=volume",
+        "source=${localWorkspaceFolderBasename}-sisyphus,target=/workspace/.sisyphus,type=volume",
+        // shared configs: windows user: change ${localEnv:HOME} to %USERPROFILE% if troubles
+        "source=${localEnv:HOME}/.local/share/opencode/auth.json,target=/home/vscode/.local/share/opencode/auth.json,type=bind",
+        "source=${localEnv:HOME}/.config/opencode,target=/home/vscode/.config/opencode,type=bind",
+        // global cache
+        "source=uv-shared-cache,target=/home/vscode/.cache/uv,type=volume",
+        "source=opencode-global-cache,target=/home/vscode/.cache/opencode,type=volume"
+    ],
+    "containerEnv": {
+        // "PYTHONPATH": "/workspace/src", // this project is /workspace
+        "UV_LINK_MODE": "copy",
+        "OMO_AUTO_RECOVERY": "true",
+        "OLLAMA_HOST": "http://host.orb.internal:11434"
+    },
+    "forwardPorts": [8000],
+    "postCreateCommand": "sudo chown -R vscode:vscode /home/vscode/.local /home/vscode && uv sync --all-extras"
 }
+
+// bunx oh-my-opencode install

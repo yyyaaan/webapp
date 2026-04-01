@@ -74,67 +74,16 @@ Please check and maintain docs/ for app specified architecture and design decisi
 
 ## Quick Start
 
-### 1. Install Dependencies
+### Dev Container
 
-```bash
-pip install -r requirements.txt
-```
+> The container has `opencode` by default, but not OMO (oh-my-openagent, previously oh-my-opencode, https://github.com/code-yeongyu/oh-my-openagent). Manual install expected, and sisyphus named volume is ready regardless of installation status.
 
-### 2. Configure Environment
+1. Install **VS Code** with the **Dev Containers** extension
+2. Open the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
+3. Run `Dev Containers: Reopen in Container`
+4. Start the server: `uvicorn main:app --reload --host 0.0.0.0 --port 8001`
 
-Copy `.env.example` to `.env` and configure:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` with your settings:
-
-```env
-SECRET_KEY=your-secret-key-here
-MONGODB_URI=mongodb://localhost:27017
-MONGODB_DB_NAME=home_server
-
-# OAuth Providers (at least one required for login)
-GITHUB_CLIENT_ID=your_github_client_id
-GITHUB_CLIENT_SECRET=your_github_client_secret
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-MICROSOFT_CLIENT_ID=your_microsoft_client_id
-MICROSOFT_CLIENT_SECRET=your_microsoft_client_secret
-
-# Header-based Authentication (optional)
-HEADER_AUTH_ENABLED=true
-DATABRICKS_HEADER_AUTH=true
-AZURE_APP_SERVICE_AUTH=true
-TRUSTED_HEADER_PROXIES=127.0.0.1,::1
-
-# Admin emails (comma-separated)
-ADMIN_EMAILS=admin@example.com
-
-FRONTEND_URL=http://localhost:8001
-```
-
-### 3. Run MongoDB
-
-```bash
-# Using Docker
-docker run -d -p 27017:27017 --name mongodb mongo:latest
-
-# Or use your existing MongoDB instance
-```
-
-### 4. Start Server
-
-```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8001
-```
-
-### 5. Access the App
-
-- **Root URL** (`http://localhost:8001`): Public landing page (no auth required)
-- **Dashboard** (when authenticated): Shows your features and quick stats
-- **Todos** (`/todos`): Manage todo items with card-based layout
+> **Note**: Requires MongoDB running (remote or locally), for example on `mongodb://localhost:27017` (e.g., `docker run -d -p 27017:27017 mongo:latest`)
 
 ## Authentication
 
@@ -242,6 +191,7 @@ mkdir -p app/features/myfeature
 from pydantic import Field
 from app.models.base import MongoBaseModel
 
+
 class MyFeatureModel(MongoBaseModel):
     name: str = Field(..., max_length=100)
     description: str | None = Field(default=None, max_length=500)
@@ -252,9 +202,11 @@ class MyFeatureModel(MongoBaseModel):
 ```python
 from pydantic import BaseModel
 
+
 class MyFeatureCreate(BaseModel):
     name: str
     description: str | None = None
+
 
 class MyFeatureResponse(BaseModel):
     id: str
@@ -277,6 +229,7 @@ feature_info = {
     "description": "Description of my feature",
 }
 
+
 @router.get("/")
 async def list_items(request: Request, user: dict = Depends(get_current_user)):
     # Protected route - requires auth
@@ -293,6 +246,7 @@ The `get_current_user` dependency handles authentication:
 from fastapi import Depends
 from app.auth.middleware import get_current_user
 
+
 @router.get("/protected")
 async def protected_route(user: dict = Depends(get_current_user)):
     return {"user": user}
@@ -302,6 +256,7 @@ For admin-only routes, use `require_admin`:
 
 ```python
 from app.auth.middleware import require_admin
+
 
 @router.post("/create")
 async def create_item(user: dict = Depends(require_admin)):

@@ -32,31 +32,29 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 async def root(request: Request):
     # Check for authentication
     user = await get_current_user(request)
-    
+
     if user:
         # Authenticated - show dashboard
         features = discover_features()
         return templates.TemplateResponse(
+            request,
             "dashboard/dashboard.html",
             {
-                "request": request,
                 "user": {
-                    "name": user.get("name", "User"), 
-                    "email": user.get("email", ""), 
+                    "name": user.get("name", "User"),
+                    "email": user.get("email", ""),
                     "avatar_url": None,
                     "role": user.get("role", "user"),
                 },
                 "features": [{"name": f.name, "url": f.url} for f in features],
             },
         )
-    
+
     # Not authenticated - show landing page (no login required)
     providers = get_available_auth_providers(request)
-    return templates.TemplateResponse("landing.html", {
-        "request": request, 
-        "providers": providers,
-        "user": None
-    })
+    return templates.TemplateResponse(
+        request, "landing.html", {"providers": providers, "user": None}
+    )
 
 
 @app.get("/logout", response_class=HTMLResponse)
