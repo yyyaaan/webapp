@@ -1,6 +1,6 @@
 {
     "name": "yan-fi-devcontainer",
-    "runArgs": ["--name", "yan-fi-devcontainer"],  // containerName is not supported
+    "runArgs": ["--name", "devcontainer-${localWorkspaceFolderBasename}"],
     "build": { 
         "dockerfile": "Dockerfile" 
     },
@@ -60,13 +60,13 @@
     "updateRemoteUserUID": true, // match the vscode user in container with the host user to avoid permission issues on mounted volumes
     "mounts": [
         // local named volumes
-        "source=${localWorkspaceFolderBasename}-venv,target=/workspace/.venv,type=volume",
-        "source=${localWorkspaceFolderBasename}-sisyphus,target=/workspace/.sisyphus,type=volume",
+        "source=venv-${localWorkspaceFolderBasename},target=/workspace/.venv,type=volume",
+        "source=sisyphus-${localWorkspaceFolderBasename},target=/workspace/.sisyphus,type=volume",
         // shared configs: windows user: change ${localEnv:HOME} to %USERPROFILE% if troubles
         "source=${localEnv:HOME}/.local/share/opencode/auth.json,target=/home/vscode/.local/share/opencode/auth.json,type=bind",
         "source=${localEnv:HOME}/.config/opencode,target=/home/vscode/.config/opencode,type=bind",
         // global cache
-        "source=uv-shared-cache,target=/home/vscode/.cache/uv,type=volume",
+        "source=uv-shared-cache-py314,target=/home/vscode/.cache/uv,type=volume",
         "source=opencode-global-cache,target=/home/vscode/.cache/opencode,type=volume"
     ],
     "containerEnv": {
@@ -76,7 +76,7 @@
         "OLLAMA_HOST": "http://host.orb.internal:11434"
     },
     "forwardPorts": [8000],
-    "postCreateCommand": "sudo chown -R vscode:vscode /home/vscode/.local /home/vscode && uv sync --all-extras"
+    "postCreateCommand": "sudo chown -R vscode:vscode /workspace/.venv /home/vscode/.local /home/vscode && uv sync --all-extras"
 }
 
 // bunx oh-my-opencode install
